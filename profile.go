@@ -47,6 +47,14 @@ func WithFileStore(storeDir string) profileConfigVariadicFunc {
 	}
 }
 
+func WithCustomStore(newCustomStore store.NewStoreInterface) profileConfigVariadicFunc {
+	return func(c profileConfig) profileConfig {
+		c.driver = global.PROFILE_DRIVER_CUSTOM
+		store.NewCustomStore = newCustomStore
+		return c
+	}
+}
+
 // newStoreFactory returns a storage interface based on the configured driver
 func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 	switch driver {
@@ -56,6 +64,8 @@ func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 		return store.NewMemoryStore
 	case global.PROFILE_DRIVER_FILE:
 		return store.NewFileStore
+	case global.PROFILE_DRIVER_CUSTOM:
+		return store.NewCustomStore
 	default:
 		return nil
 	}

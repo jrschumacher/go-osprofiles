@@ -30,6 +30,9 @@ type StoreInterface interface {
 	Delete() error
 }
 
+// NewCustomStore is a package global to init a custom store implementation.
+var NewCustomStore NewStoreInterface
+
 const maxFileNameLength = 255
 
 // ValidateNamespaceKey ensures the namespace and key are valid and within length bounds.

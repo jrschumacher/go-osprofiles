@@ -9,9 +9,11 @@ const (
 	PROFILE_DRIVER_KEYRING   ProfileDriver = "keyring"
 	PROFILE_DRIVER_IN_MEMORY ProfileDriver = "in-memory"
 	PROFILE_DRIVER_FILE      ProfileDriver = "file"
-	PROFILE_DRIVER_DEFAULT                 = PROFILE_DRIVER_FILE
-	STORE_KEY_PROFILE                      = "profile"
-	STORE_KEY_GLOBAL                       = "global"
+	// Experimental: enables definition of custom storage driver
+	PROFILE_DRIVER_CUSTOM  ProfileDriver = "custom"
+	PROFILE_DRIVER_DEFAULT               = PROFILE_DRIVER_FILE
+	STORE_KEY_PROFILE                    = "profile"
+	STORE_KEY_GLOBAL                     = "global"
 )
 
 type ProfileDriver string
