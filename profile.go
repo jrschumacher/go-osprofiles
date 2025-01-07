@@ -1,7 +1,7 @@
 package profiles
 
 import (
-	"github.com/jrschumacher/go-osprofile/pkg/store"
+	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
 
 // Define constants for the different storage drivers and store keys

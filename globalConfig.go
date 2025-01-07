@@ -1,7 +1,7 @@
 package profiles
 
 import (
-	"github.com/jrschumacher/go-osprofile/pkg/store"
+	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
 
 // This variable is used to store the version of the profiles. Since the profiles structure might
