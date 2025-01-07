@@ -12,7 +12,7 @@ type KeyringStore struct {
 	key       string
 }
 
-var NewKeyringStore NewStoreInterface = func(namespace string, key string) (StoreInterface, error) {
+var NewKeyringStore NewStoreInterface = func(namespace, key string, _ ...DriverOpt) (StoreInterface, error) {
 	if err := ValidateNamespaceKey(namespace, key); err != nil {
 		return nil, err
 	}

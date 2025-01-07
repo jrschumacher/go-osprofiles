@@ -4,10 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+
 )
 
+// DriverOpt is a variadic function to set driver options.
+type DriverOpt func() error
+
 // StoreInterface is an interface for a store of a single key and value under a namespace.
-type NewStoreInterface func(namespace string, key string) (StoreInterface, error)
+type NewStoreInterface func(namespace, key string, driverOpt ...DriverOpt) (StoreInterface, error)
 
 // TODO: should we reconfigure this abstraction so we have a more traditional key-value store?
 

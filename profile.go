@@ -17,6 +17,8 @@ const (
 type profileConfig struct {
 	configName string
 	driver     ProfileDriver
+
+	driverOpts []store.DriverOpt
 }
 
 type Profile struct {
@@ -47,9 +49,10 @@ func WithKeyringStore() profileConfigVariadicFunc {
 	}
 }
 
-func WithFileStore() profileConfigVariadicFunc {
+func WithFileStore(storeDir string) profileConfigVariadicFunc {
 	return func(c profileConfig) profileConfig {
 		c.driver = PROFILE_DRIVER_FILE
+		c.driverOpts = append(c.driverOpts, store.WithStoreDirectory(storeDir))
 		return c
 	}
 }
@@ -77,6 +80,7 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error)
 		return testProfile, nil
 	}
 
+	// Apply configuration options
 	config := profileConfig{
 		driver: PROFILE_DRIVER_DEFAULT,
 	}
