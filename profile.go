@@ -76,10 +76,6 @@ func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error) {
 	var err error
 
-	if testProfile != nil {
-		return testProfile, nil
-	}
-
 	// Apply configuration options
 	config := profileConfig{
 		driver: global.PROFILE_DRIVER_DEFAULT,
