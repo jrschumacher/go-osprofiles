@@ -1,8 +1,8 @@
 package profiles
 
 import (
-	"go-osprofile/pkg/store"
 	"go-osprofile/internal/global"
+	"go-osprofile/pkg/store"
 )
 
 type ProfileStore struct {
@@ -33,14 +33,14 @@ type NamedProfile interface {
 
 // TODO: do we need both of these (New and Load both)?
 
-func NewProfileStore(configName string, newStore store.NewStoreInterface, profile NamedProfile) (*ProfileStore, error) {
+func NewProfileStore(serviceNamespace string, newStore store.NewStoreInterface, profile NamedProfile) (*ProfileStore, error) {
 	profileName := profile.GetName()
 
 	if err := validateProfileName(profileName); err != nil {
 		return nil, err
 	}
 
-	store, err := newStore(configName, getStoreKey(profileName))
+	store, err := newStore(serviceNamespace, getStoreKey(profileName))
 	if err != nil {
 		return nil, err
 	}
@@ -52,12 +52,13 @@ func NewProfileStore(configName string, newStore store.NewStoreInterface, profil
 	return p, nil
 }
 
-func LoadProfileStore(configName string, newStore store.NewStoreInterface, profileName string) (*ProfileStore, error) {
+// 
+func LoadProfileStore(serviceNamespace string, newStore store.NewStoreInterface, profileName string) (*ProfileStore, error) {
 	if err := validateProfileName(profileName); err != nil {
 		return nil, err
 	}
 
-	store, err := newStore(configName, getStoreKey(profileName))
+	store, err := newStore(serviceNamespace, getStoreKey(profileName))
 	if err != nil {
 		return nil, err
 	}
