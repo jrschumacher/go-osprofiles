@@ -2,6 +2,7 @@ package profiles
 
 import (
 	"go-osprofile/pkg/store"
+	"go-osprofile/internal/global"
 )
 
 type ProfileStore struct {
@@ -98,5 +99,5 @@ func (p *ProfileStore) SetTLSNoVerify(tlsNoVerify bool) error {
 // utility functions
 
 func getStoreKey(n string) string {
-	return STORE_KEY_PROFILE + "-" + n
+	return global.STORE_KEY_PROFILE + "-" + n
 }

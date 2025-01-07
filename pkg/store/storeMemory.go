@@ -14,14 +14,14 @@ type MemoryStore struct {
 
 // NewMemoryStore creates a new in-memory store
 // JSON is used to serialize the data to ensure the interface is consistent with other store implementations
-var NewMemoryStore NewStoreInterface = func(namespace, key string, _ ...DriverOpt) (StoreInterface, error) {
-	if err := ValidateNamespaceKey(namespace, key); err != nil {
+var NewMemoryStore NewStoreInterface = func(serviceNamespace, key string, _ ...DriverOpt) (StoreInterface, error) {
+	if err := ValidateNamespaceKey(serviceNamespace, key); err != nil {
 		return nil, err
 	}
 
 	memory := make(map[string]interface{})
 	return &MemoryStore{
-		namespace: namespace,
+		namespace: serviceNamespace,
 		key:       key,
 		memory:    &memory,
 	}, nil

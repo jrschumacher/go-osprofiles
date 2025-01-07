@@ -51,13 +51,14 @@ func WithStoreDirectory(storeDir string) DriverOpt {
 
 // TODO: should we use this throughout all stores and add it to the interface?
 // URN-based namespace template without UUID, using only profile name for uniqueness
-func BuildNamespaceURN(configName, version string) string {
-	return fmt.Sprintf("urn:goosprofiles:%s:profile:%s", configName, version) // e.g., urn:goosprofiles:otdfctl:profile:v1:<profileName>
+// i.e. urn:goosprofiles:<serviceNamespace>:profile:<version>:<profileName>
+func BuildNamespaceURN(serviceNamespace, version string) string {
+	return fmt.Sprintf("urn:goosprofiles:%s:profile:%s", serviceNamespace, version)
 }
 
 // NewFileStore is the constructor function for FileStore, setting the file path based on executable directory or environment variable and hashed filename
-var NewFileStore NewStoreInterface = func(namespace, key string, driverOpts ...DriverOpt) (StoreInterface, error) {
-	if err := ValidateNamespaceKey(namespace, key); err != nil {
+var NewFileStore NewStoreInterface = func(serviceNamespace, key string, driverOpts ...DriverOpt) (StoreInterface, error) {
+	if err := ValidateNamespaceKey(serviceNamespace, key); err != nil {
 		return nil, err
 	}
 
@@ -95,12 +96,12 @@ var NewFileStore NewStoreInterface = func(namespace, key string, driverOpts ...D
 		panic(fmt.Sprintf("unable to delete temp file in profiles directory %s: please ensure delete permissions are granted", baseDir))
 	}
 
-	urn := BuildNamespaceURN(namespace, version1)
+	urn := BuildNamespaceURN(serviceNamespace, version1)
 	fileName := fmt.Sprintf("%s_%s", urn, key)
 	filePath := filepath.Join(baseDir, fileName+".enc")
 	return &FileStore{
 		namespaceVersionURN: urn,
-		namespace:           namespace,
+		namespace:           serviceNamespace,
 		key:                 key,
 		filePath:            filePath,
 	}, nil
