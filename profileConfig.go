@@ -1,8 +1,8 @@
 package profiles
 
 import (
-	"go-osprofile/pkg/store"
-	"go-osprofile/internal/global"
+	"github.com/jrschumacher/go-osprofiles/internal/global"
+	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
 
 type ProfileStore struct {
