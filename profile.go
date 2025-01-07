@@ -76,10 +76,6 @@ func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error) {
 	var err error
 
-	if testProfile != nil {
-		return testProfile, nil
-	}
-
 	// Apply configuration options
 	config := profileConfig{
 		driver: global.PROFILE_DRIVER_DEFAULT,
@@ -121,7 +117,7 @@ func (p *Profile) AddProfile(profile NamedProfile, setDefault bool) error {
 	if p.globalStore.ProfileExists(profileName) {
 		return ErrProfileNameConflict
 	}
-	
+
 	// Create profile store and save
 	p.currentProfileStore, err = NewProfileStore(p.config.configName, newStoreFactory(p.config.driver), profile)
 	if err != nil {
