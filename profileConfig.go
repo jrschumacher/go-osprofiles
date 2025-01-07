@@ -5,22 +5,36 @@ import (
 )
 
 type ProfileStore struct {
+	// Store is the specific initialized driver that satisfies the StoreInterface.
 	store store.StoreInterface
-
-	config ProfileConfig
+	// Profile is the struct that holds the profile data and satisfies the NamedProfile interface.
+	profile NamedProfile
 }
 
-type ProfileConfig struct {
-	Name string `json:"profile"`
-	// TODO: map[string]interface{}
-	// TODO: interface{}?
-	Endpoint        string          `json:"endpoint"`
-	TlsNoVerify     bool            `json:"tlsNoVerify"`
+// NamedProfile is the holder of a profile containing a name and all stored profile data.
+// It is marshaled on Get and unmarshaled on Set, so an interface is used to allow
+// for any struct to be stored. The struct satisfying the interface must have JSON tags
+// for each stored field.
+//
+// Example:
+//
+//	type MyProfile struct {
+//		 Name string `json:"name"`
+//		 Email string `json:"email"`
+//	}
+//
+//	func (p *MyProfile) GetName() string {
+//	 return p.Name
+//	}
+type NamedProfile interface {
+	GetName() string
 }
 
 // TODO: do we need both of these (New and Load both)?
 
-func NewProfileStore(configName string, newStore store.NewStoreInterface, profileName string, endpoint string, tlsNoVerify bool) (*ProfileStore, error) {
+func NewProfileStore(configName string, newStore store.NewStoreInterface, profile NamedProfile) (*ProfileStore, error) {
+	profileName := profile.GetName()
+
 	if err := validateProfileName(profileName); err != nil {
 		return nil, err
 	}
@@ -31,12 +45,8 @@ func NewProfileStore(configName string, newStore store.NewStoreInterface, profil
 	}
 
 	p := &ProfileStore{
-		store: store,
-		config: ProfileConfig{
-			Name:        profileName,
-			Endpoint:    endpoint,
-			TlsNoVerify: tlsNoVerify,
-		},
+		store:   store,
+		profile: profile,
 	}
 	return p, nil
 }
@@ -57,41 +67,24 @@ func LoadProfileStore(configName string, newStore store.NewStoreInterface, profi
 	return p, p.Get()
 }
 
+// Get the current profile data from the store
 func (p *ProfileStore) Get() error {
-	return p.store.Get(&p.config)
+	return p.store.Get(&p.profile)
 }
 
+// Save the current profile data to the store
 func (p *ProfileStore) Save() error {
-	return p.store.Set(p.config)
+	return p.store.Set(p.profile)
 }
 
+// Delete the current profile from the store
 func (p *ProfileStore) Delete() error {
 	return p.store.Delete()
 }
 
 // Profile Name
 func (p *ProfileStore) GetProfileName() string {
-	return p.config.Name
-}
-
-// Endpoint
-func (p *ProfileStore) GetEndpoint() string {
-	return p.config.Endpoint
-}
-
-func (p *ProfileStore) SetEndpoint(endpoint string) error {
-	p.config.Endpoint = endpoint
-	return p.Save()
-}
-
-// TLS No Verify
-func (p *ProfileStore) GetTLSNoVerify() bool {
-	return p.config.TlsNoVerify
-}
-
-func (p *ProfileStore) SetTLSNoVerify(tlsNoVerify bool) error {
-	p.config.TlsNoVerify = tlsNoVerify
-	return p.Save()
+	return p.profile.GetName()
 }
 
 // utility functions

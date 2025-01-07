@@ -38,7 +38,7 @@ type testConfig struct {
 	DefaultProfile string `json:"defaultProfile,omitempty"`
 
 	// profiles to add
-	Profiles []ProfileConfig `json:"profiles,omitempty"`
+	Profiles []NamedProfile `json:"profiles,omitempty"`
 }
 
 func init() {
@@ -63,6 +63,8 @@ func init() {
 			if err != nil {
 				panic(err)
 			}
+
+			
 
 			for _, p := range cfg.Profiles {
 				err := testProfile.AddProfile(p.Name, p.Endpoint, p.TlsNoVerify, cfg.DefaultProfile == p.Name)

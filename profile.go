@@ -109,16 +109,17 @@ func (p *Profile) GetGlobalConfig() *GlobalStore {
 }
 
 // AddProfile adds a new profile to the current configuration
-func (p *Profile) AddProfile(profileName string, endpoint string, tlsNoVerify bool, setDefault bool) error {
+func (p *Profile) AddProfile(profile NamedProfile, setDefault bool) error {
 	var err error
+	profileName := profile.GetName()
 
 	// Check if the profile already exists
 	if p.globalStore.ProfileExists(profileName) {
 		return ErrProfileNameConflict
 	}
-
+	
 	// Create profile store and save
-	p.currentProfileStore, err = NewProfileStore(p.config.configName, newStoreFactory(p.config.driver), profileName, endpoint, tlsNoVerify)
+	p.currentProfileStore, err = NewProfileStore(p.config.configName, newStoreFactory(p.config.driver), profile)
 	if err != nil {
 		return err
 	}
@@ -164,7 +165,7 @@ func (p *Profile) UseProfile(profileName string) (*ProfileStore, error) {
 	var err error
 
 	// If current profile is already set to this, return it
-	if p.currentProfileStore != nil && p.currentProfileStore.config.Name == profileName {
+	if p.currentProfileStore != nil && p.currentProfileStore.profile.GetName() == profileName {
 		return p.currentProfileStore, nil
 	}
 
