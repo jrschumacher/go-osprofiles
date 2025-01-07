@@ -16,7 +16,7 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-type FileStore struct {
+type fileStore struct {
 	namespaceVersionURN string
 	namespace           string
 	key                 string
@@ -24,7 +24,7 @@ type FileStore struct {
 }
 
 // Metadata structure for unencrypted metadata about the encrypted file
-type FileMetadata struct {
+type fileMetadata struct {
 	ProfileName   string `json:"profile_name"`
 	CreatedAt     string `json:"created_at"`
 	EncryptionAlg string `json:"encryption_alg"`
@@ -38,22 +38,40 @@ const (
 	ownerPermissionsRWX = 0o700
 )
 
-// TODO: should we use this throughout all stores and add it to the interface?
-// URN-based namespace template without UUID, using only profile name for uniqueness
-func BuildNamespaceURN(configName, version string) string {
-	return fmt.Sprintf("urn:goosprofiles:%s:profile:%s", configName, version) // e.g., urn:goosprofiles:otdfctl:profile:v1:<profileName>
+// Directory where profiles are stored when using the fileStore driver
+var storeDirectory string
+
+// Assigns the store directory for the fileStore driver
+func WithStoreDirectory(storeDir string) DriverOpt {
+	return func() error {
+		storeDirectory = storeDir
+		return nil
+	}
 }
 
-// NewFileStore is the constructor function for FileStore, setting the file path based on executable directory or environment variable and hashed filename
-var NewFileStore NewStoreInterface = func(namespace string, key string) (StoreInterface, error) {
-	if err := ValidateNamespaceKey(namespace, key); err != nil {
+// TODO: should we use this throughout all stores and add it to the interface?
+// URN-based namespace template without UUID, using only profile name for uniqueness
+// i.e. urn:goosprofiles:<serviceNamespace>:profile:<version>:<profileName>
+func BuildNamespaceURN(serviceNamespace, version string) string {
+	return fmt.Sprintf("urn:goosprofiles:%s:profile:%s", serviceNamespace, version)
+}
+
+// NewFileStore is the constructor function for fileStore, setting the file path based on executable directory or environment variable and hashed filename
+var NewFileStore NewStoreInterface = func(serviceNamespace, key string, driverOpts ...DriverOpt) (StoreInterface, error) {
+	if err := ValidateNamespaceKey(serviceNamespace, key); err != nil {
 		return nil, err
 	}
 
-	// Check for OTDFCTL_PROFILE_PATH environment variable
-	baseDir := os.Getenv("OTDFCTL_PROFILE_PATH")
+	// Apply any driver options
+	for _, opt := range driverOpts {
+		if err := opt(); err != nil {
+			return nil, errors.Join(ErrStoreDriverSetup, err)
+		}
+	}
+
+	// Either storeDirectory is set by the WithStoreDirectory option or the "profiles" directory relative to the running executable
+	baseDir := storeDirectory
 	if baseDir == "" {
-		// If environment variable is not set, use the "profiles" directory relative to the executable
 		execPath, err := os.Executable()
 		if err != nil {
 			panic("unable to determine the executable path for profile storage")
@@ -61,10 +79,12 @@ var NewFileStore NewStoreInterface = func(namespace string, key string) (StoreIn
 		execDir := filepath.Dir(execPath)
 		baseDir = filepath.Join(execDir, "profiles")
 	}
+
 	// Ensure the base directory exists with owner-only access including execute
 	if err := os.MkdirAll(baseDir, ownerPermissionsRWX); err != nil {
 		panic(fmt.Sprintf("failed to create profiles directory %s: please check directory permissions", baseDir))
 	}
+
 	// Check for read/write permissions by creating and removing a temp file
 	testFilePath := filepath.Join(baseDir, ".tmp_profile_rw_test")
 	testFile, err := os.Create(testFilePath)
@@ -75,27 +95,26 @@ var NewFileStore NewStoreInterface = func(namespace string, key string) (StoreIn
 	if err := os.Remove(testFilePath); err != nil {
 		panic(fmt.Sprintf("unable to delete temp file in profiles directory %s: please ensure delete permissions are granted", baseDir))
 	}
-	urn := BuildNamespaceURN(namespace, version1)
-	// Generate the filename hashed for uniqueness
-	// Note: other stores use the config.AppName, but want to rely on something more resilient like the namespace
+
+	urn := BuildNamespaceURN(serviceNamespace, version1)
 	fileName := fmt.Sprintf("%s_%s", urn, key)
 	filePath := filepath.Join(baseDir, fileName+".enc")
-	return &FileStore{
+	return &fileStore{
 		namespaceVersionURN: urn,
-		namespace:           namespace,
+		namespace:           serviceNamespace,
 		key:                 key,
 		filePath:            filePath,
 	}, nil
 }
 
 // Exists checks if the encrypted file exists
-func (f *FileStore) Exists() bool {
+func (f *fileStore) Exists() bool {
 	_, err := os.Stat(f.filePath)
 	return err == nil
 }
 
 // Get retrieves and decrypts data from the file
-func (f *FileStore) Get(value interface{}) error {
+func (f *fileStore) Get(value interface{}) error {
 	key, err := f.getEncryptionKey()
 	if err != nil {
 		return err
@@ -112,7 +131,7 @@ func (f *FileStore) Get(value interface{}) error {
 }
 
 // Set encrypts and saves data to the file, also saving metadata
-func (f *FileStore) Set(value interface{}) error {
+func (f *fileStore) Set(value interface{}) error {
 	key, err := f.getEncryptionKey()
 	if err != nil {
 		return err
@@ -135,7 +154,7 @@ func (f *FileStore) Set(value interface{}) error {
 }
 
 // Delete removes the encrypted file and metadata file from disk
-func (f *FileStore) Delete() error {
+func (f *fileStore) Delete() error {
 	if err := os.Remove(f.filePath); err != nil {
 		return err
 	}
@@ -145,7 +164,7 @@ func (f *FileStore) Delete() error {
 }
 
 // getEncryptionKey retrieves the encryption key from the keyring or generates it if absent
-func (f *FileStore) getEncryptionKey() ([]byte, error) {
+func (f *fileStore) getEncryptionKey() ([]byte, error) {
 	// Try retrieving the key as a string from the keyring
 	keyStr, err := keyring.Get(f.namespaceVersionURN, f.key)
 	if errors.Is(err, keyring.ErrNotFound) {
@@ -208,8 +227,8 @@ func decryptData(key, encryptedData []byte) ([]byte, error) {
 }
 
 // SaveMetadata writes unencrypted metadata to a .nfo file
-func (f *FileStore) SaveMetadata(profileName string) error {
-	metadata := FileMetadata{
+func (f *fileStore) SaveMetadata(profileName string) error {
+	metadata := fileMetadata{
 		ProfileName:   profileName,
 		CreatedAt:     time.Now().Format(time.RFC3339),
 		EncryptionAlg: "AES-256-GCM",
@@ -224,13 +243,13 @@ func (f *FileStore) SaveMetadata(profileName string) error {
 }
 
 // LoadMetadata loads and parses metadata from a .nfo file
-func (f *FileStore) LoadMetadata() (*FileMetadata, error) {
+func (f *fileStore) LoadMetadata() (*fileMetadata, error) {
 	metadataFilePath := strings.TrimSuffix(f.filePath, filepath.Ext(f.filePath)) + ".nfo"
 	data, err := os.ReadFile(metadataFilePath)
 	if err != nil {
 		return nil, err
 	}
-	var metadata FileMetadata
+	var metadata fileMetadata
 	if err := json.Unmarshal(data, &metadata); err != nil {
 		return nil, err
 	}

@@ -1,8 +1,22 @@
-package profiles
+package global
 
 import (
 	"go-osprofile/pkg/store"
 )
+
+// Define constants for the different storage drivers and store keys
+const (
+	PROFILE_DRIVER_KEYRING   ProfileDriver = "keyring"
+	PROFILE_DRIVER_IN_MEMORY ProfileDriver = "in-memory"
+	PROFILE_DRIVER_FILE      ProfileDriver = "file"
+	// Experimental: enables definition of custom storage driver
+	PROFILE_DRIVER_CUSTOM  ProfileDriver = "custom"
+	PROFILE_DRIVER_DEFAULT               = PROFILE_DRIVER_FILE
+	STORE_KEY_PROFILE                    = "profile"
+	STORE_KEY_GLOBAL                     = "global"
+)
+
+type ProfileDriver string
 
 // This variable is used to store the version of the profiles. Since the profiles structure might
 // change in the future, this variable is used to keep track of the version of the profiles and will

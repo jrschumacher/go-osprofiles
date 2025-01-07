@@ -14,4 +14,6 @@ var (
 	ErrValueBadCharacters = errors.New("error: value contains invalid characters")
 
 	ErrLengthExceeded = errors.New("error: length exceeded")
+
+	ErrStoreDriverSetup = errors.New("error: store driver setup failed")
 )
