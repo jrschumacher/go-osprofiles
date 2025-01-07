@@ -6,7 +6,8 @@ import (
 	"regexp"
 )
 
-// DriverOpt is a variadic function to set driver options.
+// DriverOpt is a variadic function to apply any driver-specific options, which
+// apply any side effects/hooks necessary for the driver.
 type DriverOpt func() error
 
 // StoreInterface is an interface for a store of a single key and value under a namespace.
