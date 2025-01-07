@@ -1,8 +1,8 @@
 package profiles
 
 import (
-	"go-osprofile/internal/global"
-	"go-osprofile/pkg/store"
+	"github.com/jrschumacher/go-osprofiles/internal/global"
+	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
 
 type ProfileStore struct {
@@ -52,7 +52,6 @@ func NewProfileStore(serviceNamespace string, newStore store.NewStoreInterface, 
 	return p, nil
 }
 
-// 
 func LoadProfileStore(serviceNamespace string, newStore store.NewStoreInterface, profileName string) (*ProfileStore, error) {
 	if err := validateProfileName(profileName); err != nil {
 		return nil, err
