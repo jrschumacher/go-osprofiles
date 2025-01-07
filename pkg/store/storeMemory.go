@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 )
 
-type MemoryStore struct {
+type memoryStore struct {
 	namespace string
 	key       string
 
@@ -20,20 +20,20 @@ var NewMemoryStore NewStoreInterface = func(serviceNamespace, key string, _ ...D
 	}
 
 	memory := make(map[string]interface{})
-	return &MemoryStore{
+	return &memoryStore{
 		namespace: serviceNamespace,
 		key:       key,
 		memory:    &memory,
 	}, nil
 }
 
-func (k *MemoryStore) Exists() bool {
+func (k *memoryStore) Exists() bool {
 	m := *k.memory
 	_, ok := m[k.key]
 	return ok
 }
 
-func (k *MemoryStore) Get(value interface{}) error {
+func (k *memoryStore) Get(value interface{}) error {
 	m := *k.memory
 	v, ok := m[k.key]
 	if !ok {
@@ -47,7 +47,7 @@ func (k *MemoryStore) Get(value interface{}) error {
 	return json.NewDecoder(bytes.NewReader(b)).Decode(value)
 }
 
-func (k *MemoryStore) Set(value interface{}) error {
+func (k *memoryStore) Set(value interface{}) error {
 	b, err := json.Marshal(value)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func (k *MemoryStore) Set(value interface{}) error {
 	return nil
 }
 
-func (k *MemoryStore) Delete() error {
+func (k *memoryStore) Delete() error {
 	m := *k.memory
 	delete(m, k.key)
 	// maybe write back to k.memory
