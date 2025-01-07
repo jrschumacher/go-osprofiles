@@ -16,7 +16,6 @@ type ProfileConfig struct {
 	// TODO: interface{}?
 	Endpoint        string          `json:"endpoint"`
 	TlsNoVerify     bool            `json:"tlsNoVerify"`
-	AuthCredentials AuthCredentials `json:"authCredentials"`
 }
 
 // TODO: do we need both of these (New and Load both)?
