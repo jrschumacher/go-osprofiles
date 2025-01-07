@@ -1,4 +1,4 @@
-module go-osprofile
+module github.com/jrschumacher/go-osprofile
 
 go 1.23.4
 
