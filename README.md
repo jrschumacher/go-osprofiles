@@ -17,3 +17,4 @@ Further next steps:
 1. update store abstraction to more of a typical key/value?
 2. tests
 3. docs
+4. test OS platform directories work as desired
