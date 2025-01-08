@@ -9,7 +9,8 @@ type ProfileStore struct {
 	// Store is the specific initialized driver that satisfies the StoreInterface.
 	store store.StoreInterface
 	// Profile is the struct that holds the profile data and satisfies the NamedProfile interface.
-	profile NamedProfile
+	// Exported to allow write/read access to the profile data being stored.
+	Profile NamedProfile
 }
 
 // NamedProfile is the holder of a profile containing a name and all stored profile data.
@@ -47,7 +48,7 @@ func NewProfileStore(serviceNamespace string, newStore store.NewStoreInterface, 
 
 	p := &ProfileStore{
 		store:   store,
-		profile: profile,
+		Profile: profile,
 	}
 	return p, nil
 }
@@ -70,12 +71,12 @@ func LoadProfileStore(serviceNamespace string, newStore store.NewStoreInterface,
 
 // Get the current profile data from the store
 func (p *ProfileStore) Get() error {
-	return p.store.Get(&p.profile)
+	return p.store.Get(&p.Profile)
 }
 
 // Save the current profile data to the store
 func (p *ProfileStore) Save() error {
-	return p.store.Set(p.profile)
+	return p.store.Set(p.Profile)
 }
 
 // Delete the current profile from the store
@@ -85,7 +86,7 @@ func (p *ProfileStore) Delete() error {
 
 // Profile Name
 func (p *ProfileStore) GetProfileName() string {
-	return p.profile.GetName()
+	return p.Profile.GetName()
 }
 
 // utility functions

@@ -12,7 +12,8 @@ type profileConfig struct {
 	driverOpts []store.DriverOpt
 }
 
-type Profile struct {
+// Profiler is the main interface for managing profiles
+type Profiler struct {
 	config profileConfig
 
 	globalStore         *global.GlobalStore
@@ -73,7 +74,7 @@ func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 
 // New creates a new Profile with the specified configuration options.
 // The configName is required and must be unique to the application.
-func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error) {
+func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error) {
 	var err error
 
 	// Apply configuration options
@@ -90,7 +91,7 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error)
 		return nil, ErrInvalidStoreDriver
 	}
 
-	p := &Profile{
+	p := &Profiler{
 		config: config,
 	}
 
@@ -104,14 +105,18 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error)
 }
 
 // GetGlobalConfig returns the global configuration
-func (p *Profile) GetGlobalConfig() *global.GlobalStore {
+func (p *Profiler) GetGlobalConfig() *global.GlobalStore {
 	return p.globalStore
 }
 
 // AddProfile adds a new profile to the current configuration
-func (p *Profile) AddProfile(profile NamedProfile, setDefault bool) error {
+func (p *Profiler) AddProfile(profile NamedProfile, setDefault bool) error {
 	var err error
 	profileName := profile.GetName()
+
+	if err := validateProfileName(profileName); err != nil {
+		return err
+	}
 
 	// Check if the profile already exists
 	if p.globalStore.ProfileExists(profileName) {
@@ -140,15 +145,22 @@ func (p *Profile) AddProfile(profile NamedProfile, setDefault bool) error {
 }
 
 // GetCurrentProfile returns the current stored profile
-func (p *Profile) GetCurrentProfile() (*ProfileStore, error) {
+func (p *Profiler) GetCurrentProfile() (*ProfileStore, error) {
 	if p.currentProfileStore == nil {
 		return nil, ErrMissingCurrentProfile
 	}
 	return p.currentProfileStore, nil
 }
 
+type ProfileStoreInterface interface {
+	// Define the methods that any profile store type must implement
+	Save() error
+	Load() error
+	// Add more methods as needed
+}
+
 // GetProfile returns the profile store for the specified profile name
-func (p *Profile) GetProfile(profileName string) (*ProfileStore, error) {
+func (p *Profiler) GetProfile(profileName string) (*ProfileStore, error) {
 	if !p.globalStore.ProfileExists(profileName) {
 		return nil, ErrMissingProfileName
 	}
@@ -156,16 +168,16 @@ func (p *Profile) GetProfile(profileName string) (*ProfileStore, error) {
 }
 
 // ListProfiles returns a list of all profile names
-func (p *Profile) ListProfiles() []string {
+func (p *Profiler) ListProfiles() []string {
 	return p.globalStore.ListProfiles()
 }
 
 // UseProfile sets the current profile to the specified profile name
-func (p *Profile) UseProfile(profileName string) (*ProfileStore, error) {
+func (p *Profiler) UseProfile(profileName string) (*ProfileStore, error) {
 	var err error
 
 	// If current profile is already set to this, return it
-	if p.currentProfileStore != nil && p.currentProfileStore.profile.GetName() == profileName {
+	if p.currentProfileStore != nil && p.currentProfileStore.Profile.GetName() == profileName {
 		return p.currentProfileStore, nil
 	}
 
@@ -175,7 +187,7 @@ func (p *Profile) UseProfile(profileName string) (*ProfileStore, error) {
 }
 
 // UseDefaultProfile sets the current profile to the default profile
-func (p *Profile) UseDefaultProfile() (*ProfileStore, error) {
+func (p *Profiler) UseDefaultProfile() (*ProfileStore, error) {
 	defaultProfile := p.globalStore.GetDefaultProfile()
 	if defaultProfile == "" {
 		return nil, ErrMissingDefaultProfile
@@ -184,7 +196,7 @@ func (p *Profile) UseDefaultProfile() (*ProfileStore, error) {
 }
 
 // SetDefaultProfile sets the a specified profile to the default profile
-func (p *Profile) SetDefaultProfile(profileName string) error {
+func (p *Profiler) SetDefaultProfile(profileName string) error {
 	if !p.globalStore.ProfileExists(profileName) {
 		return ErrMissingProfileName
 	}
@@ -192,7 +204,7 @@ func (p *Profile) SetDefaultProfile(profileName string) error {
 }
 
 // DeleteProfile removes a profile from storage
-func (p *Profile) DeleteProfile(profileName string) error {
+func (p *Profiler) DeleteProfile(profileName string) error {
 	// Check if the profile exists
 	if !p.globalStore.ProfileExists(profileName) {
 		return ErrMissingProfileName
