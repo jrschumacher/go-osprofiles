@@ -152,13 +152,6 @@ func (p *Profiler) GetCurrentProfile() (*ProfileStore, error) {
 	return p.currentProfileStore, nil
 }
 
-type ProfileStoreInterface interface {
-	// Define the methods that any profile store type must implement
-	Save() error
-	Load() error
-	// Add more methods as needed
-}
-
 // GetProfile returns the profile store for the specified profile name
 func (p *Profiler) GetProfile(profileName string) (*ProfileStore, error) {
 	if !p.globalStore.ProfileExists(profileName) {
