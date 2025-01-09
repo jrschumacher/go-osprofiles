@@ -1,6 +1,8 @@
 package profiles
 
 import (
+	"encoding/json"
+
 	"github.com/jrschumacher/go-osprofiles/internal/global"
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
@@ -32,8 +34,6 @@ type NamedProfile interface {
 	GetName() string
 }
 
-// TODO: do we need both of these (New and Load both)?
-
 func NewProfileStore(serviceNamespace string, newStore store.NewStoreInterface, profile NamedProfile) (*ProfileStore, error) {
 	profileName := profile.GetName()
 
@@ -53,7 +53,7 @@ func NewProfileStore(serviceNamespace string, newStore store.NewStoreInterface, 
 	return p, nil
 }
 
-func LoadProfileStore(serviceNamespace string, newStore store.NewStoreInterface, profileName string) (*ProfileStore, error) {
+func LoadProfileStore[T NamedProfile](serviceNamespace string, newStore store.NewStoreInterface, profileName string) (*ProfileStore, error) {
 	if err := validateProfileName(profileName); err != nil {
 		return nil, err
 	}
@@ -66,12 +66,23 @@ func LoadProfileStore(serviceNamespace string, newStore store.NewStoreInterface,
 	p := &ProfileStore{
 		store: store,
 	}
-	return p, p.Get()
+	_, err = GetStoredProfile[T](p)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
-// Get the current profile data from the store
-func (p *ProfileStore) Get() error {
-	return p.store.Get(&p.Profile)
+// Generic wrapper for working with specific types
+func GetStoredProfile[T NamedProfile](store *ProfileStore) (T, error) {
+	var profile T
+	data, err := store.store.Get()
+	if err != nil {
+		return profile, err
+	}
+	err = json.Unmarshal(data, &profile)
+	store.Profile = profile
+	return profile, err
 }
 
 // Save the current profile data to the store

@@ -27,12 +27,13 @@ func (k *keyringStore) Exists() bool {
 	return err == nil && s != ""
 }
 
-func (k *keyringStore) Get(value interface{}) error {
+func (k *keyringStore) Get() ([]byte, error) {
 	s, err := keyring.Get(k.namespace, k.key)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return json.NewDecoder(bytes.NewReader([]byte(s))).Decode(value)
+	return []byte(s), err
+	// return json.NewDecoder(bytes.NewReader([]byte(s))).Decode(value)
 }
 
 func (k *keyringStore) Set(value interface{}) error {

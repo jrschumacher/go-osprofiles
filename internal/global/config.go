@@ -1,6 +1,8 @@
 package global
 
 import (
+	"encoding/json"
+
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
 
@@ -54,7 +56,14 @@ func LoadGlobalConfig(configName string, newStore store.NewStoreInterface) (*Glo
 	}
 
 	if p.store.Exists() {
-		err := p.store.Get(&p.config)
+		data, err := p.store.Get()
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(data, &p.config)
+		if err != nil {
+			return nil, err
+		}
 
 		// check the version of the profiles
 		if p.config.ProfilesVersion != PROFILES_VERSION_LATEST {

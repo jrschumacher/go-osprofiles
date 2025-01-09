@@ -79,7 +79,8 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error
 
 	// Apply configuration options
 	config := profileConfig{
-		driver: global.PROFILE_DRIVER_DEFAULT,
+		driver:     global.PROFILE_DRIVER_DEFAULT,
+		configName: configName,
 	}
 	for _, opt := range opts {
 		config = opt(config)
@@ -105,7 +106,7 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error
 }
 
 // GetGlobalConfig returns the global configuration
-func (p *Profiler) GetGlobalConfig() *global.GlobalStore {
+func GetGlobalConfig(p *Profiler) *global.GlobalStore {
 	return p.globalStore
 }
 
@@ -145,7 +146,7 @@ func (p *Profiler) AddProfile(profile NamedProfile, setDefault bool) error {
 }
 
 // GetCurrentProfile returns the current stored profile
-func (p *Profiler) GetCurrentProfile() (*ProfileStore, error) {
+func GetCurrentProfile(p *Profiler) (*ProfileStore, error) {
 	if p.currentProfileStore == nil {
 		return nil, ErrMissingCurrentProfile
 	}
@@ -153,20 +154,20 @@ func (p *Profiler) GetCurrentProfile() (*ProfileStore, error) {
 }
 
 // GetProfile returns the profile store for the specified profile name
-func (p *Profiler) GetProfile(profileName string) (*ProfileStore, error) {
+func GetProfile[T NamedProfile](p *Profiler, profileName string) (*ProfileStore, error) {
 	if !p.globalStore.ProfileExists(profileName) {
 		return nil, ErrMissingProfileName
 	}
-	return LoadProfileStore(p.config.configName, newStoreFactory(p.config.driver), profileName)
+	return LoadProfileStore[T](p.config.configName, newStoreFactory(p.config.driver), profileName)
 }
 
 // ListProfiles returns a list of all profile names
-func (p *Profiler) ListProfiles() []string {
+func ListProfiles(p *Profiler) []string {
 	return p.globalStore.ListProfiles()
 }
 
 // UseProfile sets the current profile to the specified profile name
-func (p *Profiler) UseProfile(profileName string) (*ProfileStore, error) {
+func UseProfile[T NamedProfile](p *Profiler, profileName string) (*ProfileStore, error) {
 	var err error
 
 	// If current profile is already set to this, return it
@@ -175,21 +176,21 @@ func (p *Profiler) UseProfile(profileName string) (*ProfileStore, error) {
 	}
 
 	// Set current profile
-	p.currentProfileStore, err = p.GetProfile(profileName)
+	p.currentProfileStore, err = GetProfile[T](p, profileName)
 	return p.currentProfileStore, err
 }
 
 // UseDefaultProfile sets the current profile to the default profile
-func (p *Profiler) UseDefaultProfile() (*ProfileStore, error) {
+func UseDefaultProfile[T NamedProfile](p *Profiler) (*ProfileStore, error) {
 	defaultProfile := p.globalStore.GetDefaultProfile()
 	if defaultProfile == "" {
 		return nil, ErrMissingDefaultProfile
 	}
-	return p.UseProfile(defaultProfile)
+	return UseProfile[T](p, defaultProfile)
 }
 
 // SetDefaultProfile sets the a specified profile to the default profile
-func (p *Profiler) SetDefaultProfile(profileName string) error {
+func SetDefaultProfile(p *Profiler, profileName string) error {
 	if !p.globalStore.ProfileExists(profileName) {
 		return ErrMissingProfileName
 	}
@@ -197,14 +198,14 @@ func (p *Profiler) SetDefaultProfile(profileName string) error {
 }
 
 // DeleteProfile removes a profile from storage
-func (p *Profiler) DeleteProfile(profileName string) error {
+func DeleteProfile(p *Profiler, profileName string) error {
 	// Check if the profile exists
 	if !p.globalStore.ProfileExists(profileName) {
 		return ErrMissingProfileName
 	}
 
 	// Retrieve the profile
-	profile, err := LoadProfileStore(p.config.configName, newStoreFactory(p.config.driver), profileName)
+	profile, err := LoadProfileStore[NamedProfile](p.config.configName, newStoreFactory(p.config.driver), profileName)
 	if err != nil {
 		return err
 	}
