@@ -47,6 +47,16 @@ jobs:
           go-version-file: 'go.mod'
           cache: false
       - name: Install gnome-keyring
-        run: sudo apt-get update && sudo apt-get install -y gnome-keyring
+        run: sudo apt-get update && sudo apt-get install -y gnome-keyring@46.10
+      - name: Initialize and Unlock Keyring
+        run: |
+          export DISPLAY=:1
+          export DBUS_SESSION_BUS_ADDRESS=/tmp/dbus
+          dbus-daemon --session --fork --print-address
+          mkdir -p ~/.config/keyrings
+          echo -n "test" | gnome-keyring-daemon --unlock
       - name: Unit Tests with the Go CLI
+        # allow gnome-keyring to work in CI
+        env:
+          DISPLAY: ':1'
         run: go test ./... -short -race -cover
