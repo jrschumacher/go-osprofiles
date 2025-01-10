@@ -181,3 +181,41 @@ func Test_NewFileSystemStore_DirectoryProvided(t *testing.T) {
 	assert.Equal(t, value.Name, storedValue.Name)
 	assert.Equal(t, value.TestValue, storedValue.TestValue)
 }
+
+func Test_NewKeyringStore(t *testing.T) {
+	testNS := "test_namespace"
+	testKey := "profile"
+
+	// dir that should be ignored by the keyring store
+	dir := t.TempDir()
+
+	store, err := NewKeyringStore(testNS, testKey, WithStoreDirectory(dir))
+	require.NoError(t, err)
+	require.NotNil(t, store)
+
+	require.False(t, store.Exists())
+
+	value := mockStoredValue{
+		Name:      "test_keyring",
+		TestValue: "keyring_value",
+	}
+	err = store.Set(value)
+	require.NoError(t, err)
+	require.True(t, store.Exists())
+
+	// ensure exactly zero files were written to the store driver directory
+	files, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	require.Zero(t, len(files))
+
+	data, err := store.Get()
+	require.NoError(t, err)
+	require.NotNil(t, data)
+
+	var storedValue *mockStoredValue
+	err = json.Unmarshal(data, &storedValue)
+	require.NoError(t, err)
+
+	assert.Equal(t, value.Name, storedValue.Name)
+	assert.Equal(t, value.TestValue, storedValue.TestValue)
+}
