@@ -114,20 +114,16 @@ func (f *fileStore) Exists() bool {
 }
 
 // Get retrieves and decrypts data from the file
-func (f *fileStore) Get(value interface{}) error {
+func (f *fileStore) Get() ([]byte, error) {
 	key, err := f.getEncryptionKey()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	encryptedData, err := os.ReadFile(f.filePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	data, err := decryptData(key, encryptedData)
-	if err != nil {
-		return err
-	}
-	return json.NewDecoder(bytes.NewReader(data)).Decode(value)
+	return decryptData(key, encryptedData)
 }
 
 // Set encrypts and saves data to the file, also saving metadata

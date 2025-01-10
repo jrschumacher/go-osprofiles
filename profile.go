@@ -1,6 +1,8 @@
 package profiles
 
 import (
+	"fmt"
+
 	"github.com/jrschumacher/go-osprofiles/internal/global"
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
@@ -12,7 +14,8 @@ type profileConfig struct {
 	driverOpts []store.DriverOpt
 }
 
-type Profile struct {
+// Profiler is the main interface for managing profiles
+type Profiler struct {
 	config profileConfig
 
 	globalStore         *global.GlobalStore
@@ -73,12 +76,13 @@ func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 
 // New creates a new Profile with the specified configuration options.
 // The configName is required and must be unique to the application.
-func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error) {
+func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error) {
 	var err error
 
 	// Apply configuration options
 	config := profileConfig{
-		driver: global.PROFILE_DRIVER_DEFAULT,
+		driver:     global.PROFILE_DRIVER_DEFAULT,
+		configName: configName,
 	}
 	for _, opt := range opts {
 		config = opt(config)
@@ -90,7 +94,7 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error)
 		return nil, ErrInvalidStoreDriver
 	}
 
-	p := &Profile{
+	p := &Profiler{
 		config: config,
 	}
 
@@ -104,13 +108,18 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error)
 }
 
 // GetGlobalConfig returns the global configuration
-func (p *Profile) GetGlobalConfig() *global.GlobalStore {
+func GetGlobalConfig(p *Profiler) *global.GlobalStore {
 	return p.globalStore
 }
 
 // AddProfile adds a new profile to the current configuration
-func (p *Profile) AddProfile(profileName string, endpoint string, tlsNoVerify bool, setDefault bool) error {
+func (p *Profiler) AddProfile(profile NamedProfile, setDefault bool) error {
 	var err error
+	profileName := profile.GetName()
+
+	if err := validateProfileName(profileName); err != nil {
+		return err
+	}
 
 	// Check if the profile already exists
 	if p.globalStore.ProfileExists(profileName) {
@@ -118,7 +127,7 @@ func (p *Profile) AddProfile(profileName string, endpoint string, tlsNoVerify bo
 	}
 
 	// Create profile store and save
-	p.currentProfileStore, err = NewProfileStore(p.config.configName, newStoreFactory(p.config.driver), profileName, endpoint, tlsNoVerify)
+	p.currentProfileStore, err = NewProfileStore(p.config.configName, newStoreFactory(p.config.driver), profile)
 	if err != nil {
 		return err
 	}
@@ -139,7 +148,7 @@ func (p *Profile) AddProfile(profileName string, endpoint string, tlsNoVerify bo
 }
 
 // GetCurrentProfile returns the current stored profile
-func (p *Profile) GetCurrentProfile() (*ProfileStore, error) {
+func GetCurrentProfile(p *Profiler) (*ProfileStore, error) {
 	if p.currentProfileStore == nil {
 		return nil, ErrMissingCurrentProfile
 	}
@@ -147,43 +156,56 @@ func (p *Profile) GetCurrentProfile() (*ProfileStore, error) {
 }
 
 // GetProfile returns the profile store for the specified profile name
-func (p *Profile) GetProfile(profileName string) (*ProfileStore, error) {
+func GetProfile[T NamedProfile](p *Profiler, profileName string) (*ProfileStore, error) {
 	if !p.globalStore.ProfileExists(profileName) {
 		return nil, ErrMissingProfileName
 	}
-	return LoadProfileStore(p.config.configName, newStoreFactory(p.config.driver), profileName)
+	return LoadProfileStore[T](p.config.configName, newStoreFactory(p.config.driver), profileName)
 }
 
 // ListProfiles returns a list of all profile names
-func (p *Profile) ListProfiles() []string {
+func ListProfiles(p *Profiler) []string {
 	return p.globalStore.ListProfiles()
 }
 
 // UseProfile sets the current profile to the specified profile name
-func (p *Profile) UseProfile(profileName string) (*ProfileStore, error) {
+func UseProfile[T NamedProfile](p *Profiler, profileName string) (*ProfileStore, error) {
 	var err error
 
 	// If current profile is already set to this, return it
-	if p.currentProfileStore != nil && p.currentProfileStore.config.Name == profileName {
+	if p.currentProfileStore != nil && p.currentProfileStore.Profile.GetName() == profileName {
 		return p.currentProfileStore, nil
 	}
 
 	// Set current profile
-	p.currentProfileStore, err = p.GetProfile(profileName)
+	p.currentProfileStore, err = GetProfile[T](p, profileName)
 	return p.currentProfileStore, err
 }
 
 // UseDefaultProfile sets the current profile to the default profile
-func (p *Profile) UseDefaultProfile() (*ProfileStore, error) {
+func UseDefaultProfile[T NamedProfile](p *Profiler) (*ProfileStore, error) {
 	defaultProfile := p.globalStore.GetDefaultProfile()
 	if defaultProfile == "" {
 		return nil, ErrMissingDefaultProfile
 	}
-	return p.UseProfile(defaultProfile)
+	return UseProfile[T](p, defaultProfile)
+}
+
+// UpdateProfile updates the current profile with new data
+func UpdateCurrentProfile(p *Profiler, profile NamedProfile) error {
+	if p.currentProfileStore == nil {
+		return fmt.Errorf("error: store cannot be nil, %w", ErrInvalidStoreDriver)
+	}
+	if p.currentProfileStore.Profile == nil {
+		return fmt.Errorf("error: profile cannot be nil, %w", ErrMissingCurrentProfile)
+	}
+	// TODO: update the global store here?
+	p.currentProfileStore.Profile = profile
+	return p.currentProfileStore.Save()
 }
 
 // SetDefaultProfile sets the a specified profile to the default profile
-func (p *Profile) SetDefaultProfile(profileName string) error {
+func SetDefaultProfile(p *Profiler, profileName string) error {
 	if !p.globalStore.ProfileExists(profileName) {
 		return ErrMissingProfileName
 	}
@@ -191,14 +213,14 @@ func (p *Profile) SetDefaultProfile(profileName string) error {
 }
 
 // DeleteProfile removes a profile from storage
-func (p *Profile) DeleteProfile(profileName string) error {
+func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 	// Check if the profile exists
 	if !p.globalStore.ProfileExists(profileName) {
 		return ErrMissingProfileName
 	}
 
 	// Retrieve the profile
-	profile, err := LoadProfileStore(p.config.configName, newStoreFactory(p.config.driver), profileName)
+	profile, err := LoadProfileStore[T](p.config.configName, newStoreFactory(p.config.driver), profileName)
 	if err != nil {
 		return err
 	}

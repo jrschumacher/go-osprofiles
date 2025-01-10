@@ -22,8 +22,8 @@ type NewStoreInterface func(serviceNamespace, key string, driverOpt ...DriverOpt
 type StoreInterface interface {
 	// Exists returns true if the value exists in the store.
 	Exists() bool
-	// Get retrieves the entry from the store and unmarshals it into the provided value.
-	Get(value interface{}) error
+	// Get retrieves the entry bytes from the store.
+	Get() ([]byte, error)
 	// Set marshals the provided value into JSON and stores it.
 	Set(value interface{}) error
 	// Delete removes the entry from the store.

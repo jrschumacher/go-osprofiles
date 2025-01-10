@@ -15,7 +15,6 @@ This project was born out of [OpenTDF](https://github.com/opentdf/platform) and 
 Further next steps:
 
 1. update store abstraction to more of a typical key/value?
-2. make the value stored for each profile more generic (`interface{}` or `map[string]interface{}`)
-3. tests / CI
-4. docs
-5. example CLI
+2. tests
+3. docs
+4. test OS platform directories work as desired

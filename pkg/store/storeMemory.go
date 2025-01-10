@@ -1,7 +1,6 @@
 package store
 
 import (
-	"bytes"
 	"encoding/json"
 )
 
@@ -33,18 +32,14 @@ func (k *memoryStore) Exists() bool {
 	return ok
 }
 
-func (k *memoryStore) Get(value interface{}) error {
+func (k *memoryStore) Get() ([]byte, error) {
 	m := *k.memory
 	v, ok := m[k.key]
 	if !ok {
-		return nil
+		return nil, nil
 	}
 
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	return json.NewDecoder(bytes.NewReader(b)).Decode(value)
+	return json.Marshal(v)
 }
 
 func (k *memoryStore) Set(value interface{}) error {
