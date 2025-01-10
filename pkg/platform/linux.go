@@ -1,6 +1,10 @@
 package platform
 
-import "path/filepath"
+import (
+	"os"
+	"os/user"
+	"path/filepath"
+)
 
 type PlatformLinux struct {
 	username         string
@@ -8,8 +12,18 @@ type PlatformLinux struct {
 	userHomeDir      string
 }
 
-func NewPlatformLinux(username, serviceNamespace, userHomeDir string) PlatformLinux {
-	return PlatformLinux{username, serviceNamespace, userHomeDir}
+func NewPlatformLinux(serviceNamespace string) (*PlatformLinux, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return nil, ErrGettingUserOS
+	}
+
+	usrHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, ErrGettingUserOS
+	}
+
+	return &PlatformLinux{usr.Username, serviceNamespace, usrHomeDir}, nil
 }
 
 // TODO: validate these are correct
@@ -26,10 +40,10 @@ func (p PlatformLinux) GetUserHomeDir() string {
 
 // GetDataDirectory returns the data directory for Linux.
 func (p PlatformLinux) GetDataDirectory() string {
-	return filepath.Join(p.userHomeDir, ".local", "share")
+	return filepath.Join(p.userHomeDir, ".local", "share", p.serviceNamespace)
 }
 
 // GetConfigDirectory returns the config directory for Linux.
 func (p PlatformLinux) GetConfigDirectory() string {
-	return filepath.Join(p.userHomeDir, ".config")
+	return filepath.Join(p.userHomeDir, ".config", p.serviceNamespace)
 }

@@ -1,6 +1,10 @@
 package platform
 
-import "path/filepath"
+import (
+	"os"
+	"os/user"
+	"path/filepath"
+)
 
 type PlatformDarwin struct {
 	username         string
@@ -8,11 +12,19 @@ type PlatformDarwin struct {
 	userHomeDir      string
 }
 
-func NewPlatformDarwin(username, serviceNamespace, userHomeDir string) Platform {
-	return PlatformDarwin{username, serviceNamespace, userHomeDir}
-}
+func NewPlatformDarwin(serviceNamespace string) (*PlatformDarwin, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return nil, ErrGettingUserOS
+	}
 
-// TODO: validate these are correct
+	usrHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, ErrGettingUserOS
+	}
+
+	return &PlatformDarwin{usr.Username, serviceNamespace, usrHomeDir}, nil
+}
 
 // GetUsername returns the username for macOS.
 func (p PlatformDarwin) GetUsername() string {
@@ -26,10 +38,10 @@ func (p PlatformDarwin) GetUserHomeDir() string {
 
 // GetDataDirectory returns the data directory for macOS.
 func (p PlatformDarwin) GetDataDirectory() string {
-	return filepath.Join(p.userHomeDir, "Library", "Application Support")
+	return filepath.Join(p.userHomeDir, "Library", "Application Support", p.serviceNamespace)
 }
 
 // GetConfigDirectory returns the config directory for macOS.
 func (p PlatformDarwin) GetConfigDirectory() string {
-	return filepath.Join(p.userHomeDir, "Library", "Preferences")
+	return filepath.Join(p.userHomeDir, "Library", "Preferences", p.serviceNamespace)
 }

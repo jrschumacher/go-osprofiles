@@ -18,19 +18,14 @@ type Platform interface {
 }
 
 // NewPlatform creates a new platform object based on the current operating system
-func NewPlatform(serviceNamespace string) (Platform, error) {
-	username, userHomeDir, err := getCurrentUserOS()
-	if err != nil {
-		return nil, err
-	}
-
-	switch runtime.GOOS {
+func NewPlatform(serviceNamespace, GOOS string) (Platform, error) {
+	switch GOOS {
 	case "linux":
-		return NewPlatformLinux(username, serviceNamespace, userHomeDir), nil
+		return NewPlatformLinux(serviceNamespace)
 	case "windows":
-		return NewPlatformWindows(username, serviceNamespace, userHomeDir), nil
+		return NewPlatformWindows(serviceNamespace)
 	case "darwin":
-		return NewPlatformDarwin(username, serviceNamespace, userHomeDir), nil
+		return NewPlatformDarwin(serviceNamespace)
 	default:
 		return nil, ErrGettingUserOS
 	}

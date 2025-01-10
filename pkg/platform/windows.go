@@ -1,6 +1,10 @@
 package platform
 
-import "path/filepath"
+import (
+	"os"
+	"os/user"
+	"path/filepath"
+)
 
 type PlatformWindows struct {
 	username         string
@@ -8,8 +12,21 @@ type PlatformWindows struct {
 	userHomeDir      string
 }
 
-func NewPlatformWindows(username, serviceNamespace, userHomeDir string) PlatformWindows {
-	return PlatformWindows{username, serviceNamespace, userHomeDir}
+func NewPlatformWindows(serviceNamespace string) (*PlatformWindows, error) {
+	// On Windows, use user.Current() if available, else fallback to environment variable
+	usr, err := user.Current()
+	if err != nil {
+		// TODO: test this on windows
+		usr = &user.User{Username: os.Getenv("USERNAME")}
+		if usr.Username == "" {
+			return nil, ErrGettingUserOS
+		}
+	}
+	usrHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, ErrGettingUserOS
+	}
+	return &PlatformWindows{usr.Username, serviceNamespace, usrHomeDir}, nil
 }
 
 // TODO: validate these are correct
@@ -24,12 +41,15 @@ func (p PlatformWindows) GetUserHomeDir() string {
 	return p.userHomeDir
 }
 
+// TODO: it looks like this is different depending on OS version, so we should consider that
+// https://learn.microsoft.com/en-us/windows/apps/design/app-settings/store-and-retrieve-app-data
+
 // GetDataDirectory returns the data directory for Windows.
 func (p PlatformWindows) GetDataDirectory() string {
-	return filepath.Join(p.userHomeDir, "AppData", "Roaming")
+	return filepath.Join(p.userHomeDir, "AppData", "Roaming", p.serviceNamespace)
 }
 
 // GetConfigDirectory returns the config directory for Windows.
 func (p PlatformWindows) GetConfigDirectory() string {
-	return filepath.Join(p.userHomeDir, "AppData", "Local")
+	return filepath.Join(p.userHomeDir, "AppData", "Local", p.serviceNamespace)
 }
