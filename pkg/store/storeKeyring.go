@@ -33,7 +33,6 @@ func (k *keyringStore) Get() ([]byte, error) {
 		return nil, err
 	}
 	return []byte(s), err
-	// return json.NewDecoder(bytes.NewReader([]byte(s))).Decode(value)
 }
 
 func (k *keyringStore) Set(value interface{}) error {

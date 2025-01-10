@@ -40,11 +40,6 @@ func (k *memoryStore) Get() ([]byte, error) {
 	}
 
 	return json.Marshal(v)
-
-	// if err != nil {
-	// 	return err
-	// }
-	// return json.NewDecoder(bytes.NewReader(b)).Decode(value)
 }
 
 func (k *memoryStore) Set(value interface{}) error {
