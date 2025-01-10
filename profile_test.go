@@ -73,6 +73,10 @@ func (s *ProfilesSuite) TestLifecycleProfile_Keyring() {
 	s.Require().Equal(profile.TestValue, p.Profile.(*mockProfile).TestValue)
 	s.Require().Equal(profile.Nested.SubValue, p.Profile.(*mockProfile).Nested.SubValue)
 
+	// test conflict if creating same profile name twice
+	err = s.p.AddProfile(profile, true)
+	s.Require().ErrorIs(err, ErrProfileNameConflict)
+
 	// update it
 	profile.TestValue = "test-value-updated"
 	s.Require().NoError(UpdateCurrentProfile(s.p, profile))
