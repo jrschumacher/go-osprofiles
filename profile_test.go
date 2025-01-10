@@ -37,6 +37,7 @@ func (s *ProfilesSuite) SetupSuite() {
 
 func (s *ProfilesSuite) TearDownSuite() {
 	// Remove all keyring entries added by the test suite
+	//nolint:errcheck // teardown error not relevant
 	keyring.DeleteAll(testConsumerServiceProfiler)
 }
 
