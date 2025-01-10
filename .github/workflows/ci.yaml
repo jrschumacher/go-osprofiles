@@ -37,8 +37,8 @@ jobs:
           version: v1.60.3
           # Optional: golangci-lint command line arguments.
           args: --timeout=10m --out-format=colored-line-number
-  unit:
-    name: unit tests
+  tests:
+    name: unit and integration tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -46,5 +46,12 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache: false
+      - name: Install gnome-keyring
+        run: sudo apt-get update && sudo apt-get install -y gnome-keyring
+      # Keyring is used by the tool and therefore within tests.
+      # The keyring is unlocked with a dummy password as it is not actually used in the CI
+      # pipeline for sensitive data, just as a dependency of the library and its tests.
       - name: Unit Tests with the Go CLI
-        run: go test ./... -short -race -cover
+        run: |
+          echo 'somecredstorepass' | gnome-keyring-daemon --unlock
+          go test ./... -short -race -cover

@@ -199,7 +199,7 @@ func UpdateCurrentProfile(p *Profiler, profile NamedProfile) error {
 	if p.currentProfileStore.Profile == nil {
 		return fmt.Errorf("error: profile cannot be nil, %w", ErrMissingCurrentProfile)
 	}
-	// TODO: update the global store here?
+	// TODO: do we need to update the global store if the name is different?
 	p.currentProfileStore.Profile = profile
 	return p.currentProfileStore.Save()
 }

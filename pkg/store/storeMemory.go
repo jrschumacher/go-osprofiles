@@ -43,12 +43,8 @@ func (k *memoryStore) Get() ([]byte, error) {
 }
 
 func (k *memoryStore) Set(value interface{}) error {
-	b, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
 	m := *k.memory
-	m[k.key] = b
+	m[k.key] = value
 	// maybe write back to k.memory
 	// k.memory = &m
 	return nil
