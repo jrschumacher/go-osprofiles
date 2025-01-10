@@ -1,6 +1,7 @@
 package profiles
 
 import (
+	"github.com/jrschumacher/go-osprofiles/internal/global"
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
 
@@ -98,5 +99,5 @@ func (p *ProfileStore) SetTLSNoVerify(tlsNoVerify bool) error {
 // utility functions
 
 func getStoreKey(n string) string {
-	return STORE_KEY_PROFILE + "-" + n
+	return global.STORE_KEY_PROFILE + "-" + n
 }

@@ -1,68 +1,71 @@
 package profiles
 
 import (
+	"github.com/jrschumacher/go-osprofiles/internal/global"
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
-)
-
-// Define constants for the different storage drivers and store keys
-const (
-	PROFILE_DRIVER_KEYRING   ProfileDriver = "keyring"
-	PROFILE_DRIVER_IN_MEMORY ProfileDriver = "in-memory"
-	PROFILE_DRIVER_FILE      ProfileDriver = "file"
-	PROFILE_DRIVER_DEFAULT                 = PROFILE_DRIVER_FILE
-	STORE_KEY_PROFILE                      = "profile"
-	STORE_KEY_GLOBAL                       = "global"
 )
 
 type profileConfig struct {
 	configName string
-	driver     ProfileDriver
+	driver     global.ProfileDriver
+
+	driverOpts []store.DriverOpt
 }
 
 type Profile struct {
 	config profileConfig
 
-	globalStore         *GlobalStore
+	globalStore         *global.GlobalStore
 	currentProfileStore *ProfileStore
 }
 
 type (
 	profileConfigVariadicFunc func(profileConfig) profileConfig
-	ProfileDriver             string
 )
 
 // Variadic functions to set different storage drivers
 
 func WithInMemoryStore() profileConfigVariadicFunc {
 	return func(c profileConfig) profileConfig {
-		c.driver = PROFILE_DRIVER_IN_MEMORY
+		c.driver = global.PROFILE_DRIVER_IN_MEMORY
 		return c
 	}
 }
 
 func WithKeyringStore() profileConfigVariadicFunc {
 	return func(c profileConfig) profileConfig {
-		c.driver = PROFILE_DRIVER_KEYRING
+		c.driver = global.PROFILE_DRIVER_KEYRING
 		return c
 	}
 }
 
-func WithFileStore() profileConfigVariadicFunc {
+func WithFileStore(storeDir string) profileConfigVariadicFunc {
 	return func(c profileConfig) profileConfig {
-		c.driver = PROFILE_DRIVER_FILE
+		c.driver = global.PROFILE_DRIVER_FILE
+		c.driverOpts = append(c.driverOpts, store.WithStoreDirectory(storeDir))
+		return c
+	}
+}
+
+func WithCustomStore(newCustomStore store.NewStoreInterface) profileConfigVariadicFunc {
+	return func(c profileConfig) profileConfig {
+		c.driver = global.PROFILE_DRIVER_CUSTOM
+		store.NewCustomStore = newCustomStore
 		return c
 	}
 }
 
 // newStoreFactory returns a storage interface based on the configured driver
-func newStoreFactory(driver ProfileDriver) store.NewStoreInterface {
+func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 	switch driver {
-	case PROFILE_DRIVER_KEYRING:
+	case global.PROFILE_DRIVER_KEYRING:
 		return store.NewKeyringStore
-	case PROFILE_DRIVER_IN_MEMORY:
+	case global.PROFILE_DRIVER_IN_MEMORY:
 		return store.NewMemoryStore
-	case PROFILE_DRIVER_FILE:
+	case global.PROFILE_DRIVER_FILE:
 		return store.NewFileStore
+	case global.PROFILE_DRIVER_CUSTOM:
+		return store.NewCustomStore
 	default:
 		return nil
 	}
@@ -73,12 +76,9 @@ func newStoreFactory(driver ProfileDriver) store.NewStoreInterface {
 func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error) {
 	var err error
 
-	if testProfile != nil {
-		return testProfile, nil
-	}
-
+	// Apply configuration options
 	config := profileConfig{
-		driver: PROFILE_DRIVER_DEFAULT,
+		driver: global.PROFILE_DRIVER_DEFAULT,
 	}
 	for _, opt := range opts {
 		config = opt(config)
@@ -95,7 +95,7 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error)
 	}
 
 	// Load global configuration
-	p.globalStore, err = LoadGlobalConfig(configName, newStore)
+	p.globalStore, err = global.LoadGlobalConfig(configName, newStore)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profile, error)
 }
 
 // GetGlobalConfig returns the global configuration
-func (p *Profile) GetGlobalConfig() *GlobalStore {
+func (p *Profile) GetGlobalConfig() *global.GlobalStore {
 	return p.globalStore
 }
 
