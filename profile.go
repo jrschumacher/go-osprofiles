@@ -1,6 +1,8 @@
 package profiles
 
 import (
+	"fmt"
+
 	"github.com/jrschumacher/go-osprofiles/internal/global"
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
@@ -189,6 +191,19 @@ func UseDefaultProfile[T NamedProfile](p *Profiler) (*ProfileStore, error) {
 	return UseProfile[T](p, defaultProfile)
 }
 
+// UpdateProfile updates the current profile with new data
+func UpdateCurrentProfile(p *Profiler, profile NamedProfile) error {
+	if p.currentProfileStore == nil {
+		return fmt.Errorf("error: store cannot be nil, %w", ErrInvalidStoreDriver)
+	}
+	if p.currentProfileStore.Profile == nil {
+		return fmt.Errorf("error: profile cannot be nil, %w", ErrMissingCurrentProfile)
+	}
+	// TODO: update the global store here?
+	p.currentProfileStore.Profile = profile
+	return p.currentProfileStore.Save()
+}
+
 // SetDefaultProfile sets the a specified profile to the default profile
 func SetDefaultProfile(p *Profiler, profileName string) error {
 	if !p.globalStore.ProfileExists(profileName) {
@@ -198,14 +213,14 @@ func SetDefaultProfile(p *Profiler, profileName string) error {
 }
 
 // DeleteProfile removes a profile from storage
-func DeleteProfile(p *Profiler, profileName string) error {
+func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 	// Check if the profile exists
 	if !p.globalStore.ProfileExists(profileName) {
 		return ErrMissingProfileName
 	}
 
 	// Retrieve the profile
-	profile, err := LoadProfileStore[NamedProfile](p.config.configName, newStoreFactory(p.config.driver), profileName)
+	profile, err := LoadProfileStore[T](p.config.configName, newStoreFactory(p.config.driver), profileName)
 	if err != nil {
 		return err
 	}
