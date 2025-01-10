@@ -47,7 +47,7 @@ jobs:
           go-version-file: 'go.mod'
           cache: false
       - name: Install gnome-keyring
-        run: sudo apt-get update && sudo apt-get install -y gnome-keyring@46.10
+        run: sudo apt-get update && sudo apt-get install -y gnome-keyring=3.28.0-1ubuntu1
       - name: Initialize and Unlock Keyring
         run: |
           export DISPLAY=:1
