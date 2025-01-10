@@ -46,5 +46,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache: false
+      - name: Install gnome-keyring
+        run: sudo apt-get update && sudo apt-get install -y gnome-keyring
       - name: Unit Tests with the Go CLI
         run: go test ./... -short -race -cover
