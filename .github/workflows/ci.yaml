@@ -48,7 +48,10 @@ jobs:
           cache: false
       - name: Install gnome-keyring
         run: sudo apt-get update && sudo apt-get install -y gnome-keyring
+      # Keyring is used by the tool and therefore within tests.
+      # The keyring is unlocked with a dummy password as it is not actually used in the CI
+      # pipeline for sensitive data, just as a dependency of the library and its tests.
       - name: Unit Tests with the Go CLI
         run: |
-         echo 'somecredstorepass' | gnome-keyring-daemon --unlock
-         go test ./... -short -race -cover
+          echo 'somecredstorepass' | gnome-keyring-daemon --unlock
+          go test ./... -short -race -cover
