@@ -40,8 +40,8 @@ type GlobalConfig struct {
 
 // LoadGlobalConfig loads the global configuration from the store for the given name of the configuration being stored.
 // (i.e. if storing a config for example_app, then the configName should be "example_app")
-func LoadGlobalConfig(configName string, newStore store.NewStoreInterface) (*GlobalStore, error) {
-	store, err := newStore(configName, STORE_KEY_GLOBAL)
+func LoadGlobalConfig(configName string, newStore store.NewStoreInterface, driverOpts ...store.DriverOpt) (*GlobalStore, error) {
+	store, err := newStore(configName, STORE_KEY_GLOBAL, driverOpts...)
 	if err != nil {
 		return nil, err
 	}

@@ -99,7 +99,7 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error
 	}
 
 	// Load global configuration
-	p.globalStore, err = global.LoadGlobalConfig(configName, newStore)
+	p.globalStore, err = global.LoadGlobalConfig(configName, newStore, config.driverOpts...)
 	if err != nil {
 		return nil, err
 	}
