@@ -44,6 +44,26 @@ func Test_ValidateNamespaceKey(t *testing.T) {
 			ErrValueBadCharacters,
 		},
 		{
+			"name:",
+			"key",
+			ErrValueBadCharacters,
+		},
+		{
+			"name|",
+			"key",
+			ErrValueBadCharacters,
+		},
+		{
+			"name/",
+			"key",
+			ErrValueBadCharacters,
+		},
+		{
+			"name\\",
+			"key",
+			ErrValueBadCharacters,
+		},
+		{
 			"name",
 			"key@",
 			ErrValueBadCharacters,
@@ -139,7 +159,7 @@ func Test_NewFileSystemStore_DirectoryProvided(t *testing.T) {
 
 	// check the written files
 	foundGlobalConfigFile := false
-	foundSingleProfileFile := false
+	foundGlobalConfigEncFile := false
 	for _, file := range files {
 		path := filepath.Join(dir, file.Name())
 		data, err := os.ReadFile(path)
@@ -155,20 +175,20 @@ func Test_NewFileSystemStore_DirectoryProvided(t *testing.T) {
 		assert.True(t, isEncrypted)
 
 		// assert file name matches URN
-		split := strings.Split(file.Name(), ":")
+		split := strings.Split(file.Name(), ".")
 		assert.Equal(t, testNS, split[2])
 
-		last := split[len(split)-1]
+		last := file.Name()[len(testKey):]
 		if strings.Contains(last, testKey+".nfo") {
 			foundGlobalConfigFile = true
 		}
 		if strings.Contains(last, testKey+".enc") {
-			foundSingleProfileFile = true
+			foundGlobalConfigEncFile = true
 		}
 	}
 
 	assert.True(t, foundGlobalConfigFile)
-	assert.True(t, foundSingleProfileFile)
+	assert.True(t, foundGlobalConfigEncFile)
 
 	data, err := store.Get()
 	require.NoError(t, err)
