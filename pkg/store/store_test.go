@@ -213,7 +213,10 @@ func Test_NewKeyringStore(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, store)
 
-	require.False(t, store.Exists())
+	// dir should still be empty after store init
+	files, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	require.Zero(t, len(files))
 
 	value := mockStoredValue{
 		Name:      "test_keyring",
@@ -224,7 +227,7 @@ func Test_NewKeyringStore(t *testing.T) {
 	require.True(t, store.Exists())
 
 	// ensure exactly zero files were written to the store driver directory
-	files, err := os.ReadDir(dir)
+	files, err = os.ReadDir(dir)
 	require.NoError(t, err)
 	require.Zero(t, len(files))
 
