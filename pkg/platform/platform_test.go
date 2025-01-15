@@ -45,6 +45,10 @@ func Test_PlatformLinux(t *testing.T) {
 	dataDir := linux.GetDataDirectory()
 	assert.True(t, strings.HasSuffix(dataDir, fakeAppName))
 	assert.True(t, strings.Contains(dataDir, ".local/share"))
+
+	logger := linux.GetLogger()
+	assert.NotNil(t, logger)
+	logger.Info("Testing Linux logger")
 }
 
 func Test_PlatformWindows(t *testing.T) {
