@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -52,4 +53,10 @@ func (p PlatformWindows) GetDataDirectory() string {
 // GetConfigDirectory returns the config directory for Windows.
 func (p PlatformWindows) GetConfigDirectory() string {
 	return filepath.Join(p.userHomeDir, "AppData", "Local", p.serviceNamespace)
+}
+
+// Return slog.Logger for Windows
+func (p PlatformWindows) GetLogger() *slog.Logger {
+	// TODO: Implement logger
+	return &slog.Logger{}
 }

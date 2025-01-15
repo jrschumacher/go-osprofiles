@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -44,4 +45,10 @@ func (p PlatformDarwin) GetDataDirectory() string {
 // GetConfigDirectory returns the config directory for macOS.
 func (p PlatformDarwin) GetConfigDirectory() string {
 	return filepath.Join(p.userHomeDir, "Library", "Preferences", p.serviceNamespace)
+}
+
+// Return slog.Logger for macOS
+func (p PlatformDarwin) GetLogger() *slog.Logger {
+	// TODO: Implement logger
+	return &slog.Logger{}
 }

@@ -1,5 +1,7 @@
 package platform
 
+import "log/slog"
+
 type Platform interface {
 	// Get the username as known to the operating system
 	GetUsername() string
@@ -9,6 +11,8 @@ type Platform interface {
 	GetDataDirectory() string
 	// Get the config directory for the platform
 	GetConfigDirectory() string
+	// Get the logger for the platform
+	GetLogger() *slog.Logger
 }
 
 // NewPlatform creates a new platform object based on the current operating system
