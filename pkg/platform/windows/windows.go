@@ -1,10 +1,16 @@
-package platform
+//go:build windows
+// +build windows
+
+package windows
 
 import (
 	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
+
+	"github.com/jrschumacher/go-osprofiles/pkg/platform"
+	"golang.org/x/sys/windows/svc/eventlog"
 )
 
 type PlatformWindows struct {
@@ -20,12 +26,12 @@ func NewPlatformWindows(serviceNamespace string) (*PlatformWindows, error) {
 		// TODO: test this on windows
 		usr = &user.User{Username: os.Getenv("USERNAME")}
 		if usr.Username == "" {
-			return nil, ErrGettingUserOS
+			return nil, platform.ErrGettingUserOS
 		}
 	}
 	usrHomeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, ErrGettingUserOS
+		return nil, platform.ErrGettingUserOS
 	}
 	return &PlatformWindows{usr.Username, serviceNamespace, usrHomeDir}, nil
 }
@@ -57,6 +63,13 @@ func (p PlatformWindows) GetConfigDirectory() string {
 
 // Return slog.Logger for Windows
 func (p PlatformWindows) GetLogger() *slog.Logger {
-	// TODO: Implement logger
-	return &slog.Logger{}
+	writer, err := eventlog.Open(p.serviceNamespace)
+	if err != nil {
+		panic(err)
+	}
+	defer writer.Close()
+
+	handler := platform.NewSyslogHandler(writer, slog.LevelInfo)
+	logger := slog.New(handler)
+	return logger
 }

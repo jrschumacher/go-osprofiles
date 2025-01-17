@@ -1,7 +1,6 @@
 package platform
 
 import (
-	"context"
 	"log/slog"
 	"log/syslog"
 	"os"
@@ -49,44 +48,6 @@ func (p PlatformLinux) GetDataDirectory() string {
 // GetConfigDirectory returns the config directory for Linux.
 func (p PlatformLinux) GetConfigDirectory() string {
 	return filepath.Join(p.userHomeDir, ".config", p.serviceNamespace)
-}
-
-type SyslogHandler struct {
-	writer *syslog.Writer
-	level  slog.Level
-}
-
-func NewSyslogHandler(writer *syslog.Writer, level slog.Level) *SyslogHandler {
-	return &SyslogHandler{writer, level}
-}
-
-func (h *SyslogHandler) Enabled(_ context.Context, _ slog.Level) bool {
-	return true
-}
-
-func (h *SyslogHandler) Handle(_ context.Context, record slog.Record) error {
-	message := record.Message
-
-	switch record.Level {
-	case slog.LevelDebug:
-		return h.writer.Debug(message)
-	case slog.LevelInfo:
-		return h.writer.Info(message)
-	case slog.LevelWarn:
-		return h.writer.Warning(message)
-	case slog.LevelError:
-		return h.writer.Err(message)
-	default:
-		return h.writer.Info(message)
-	}
-}
-
-func (h *SyslogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return h
-}
-
-func (h *SyslogHandler) WithGroup(name string) slog.Handler {
-	return h
 }
 
 // Return slog.Logger for Linux
