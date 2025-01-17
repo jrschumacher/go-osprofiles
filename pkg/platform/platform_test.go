@@ -25,6 +25,10 @@ func Test_PlatformMacOS(t *testing.T) {
 	dataDir := darwin.GetDataDirectory()
 	assert.True(t, strings.HasSuffix(dataDir, fakeAppName))
 	assert.True(t, strings.Contains(dataDir, "Library/Application Support"))
+
+	logger := darwin.GetLogger()
+	assert.NotNil(t, logger)
+	logger.Info("Testing macOS logger")
 }
 
 func Test_PlatformLinux(t *testing.T) {
@@ -66,4 +70,7 @@ func Test_PlatformWindows(t *testing.T) {
 	assert.True(t, strings.HasSuffix(configDir, fakeAppName))
 
 	// TODO: tests according to different OS versions
+	logger := windows.GetLogger()
+	assert.NotNil(t, logger)
+	logger.Info("Testing Windows logger")
 }
