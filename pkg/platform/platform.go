@@ -3,37 +3,38 @@ package platform
 import (
 	"context"
 	"log/slog"
+
+	"github.com/jrschumacher/go-osprofiles/pkg/platform/linux"
+	"github.com/jrschumacher/go-osprofiles/pkg/platform/windows"
 )
 
 type LogHandler struct {
-	writer interface{}
-	level  slog.Level
+	// writer interface{}
+	// level  slog.Level
 }
 
 func NewLogHandler(writer interface{}, level slog.Level) *LogHandler {
-	return &LogHandler{writer, level}
+	return &LogHandler{}
 }
 
 func (h *LogHandler) Enabled(_ context.Context, _ slog.Level) bool {
 	return true
 }
 
-// func (h *SyslogHandler) Handle(_ context.Context, record slog.Record) error {
-// 	message := record.Message
-// 	writer, ok := h.writer.(*syslog.Writer)
-// 	switch record.Level {
-// 	case slog.LevelDebug:
-// 		return writer.Debug(message)
-// 	case slog.LevelInfo:
-// 		return writer.Info(message)
-// 	case slog.LevelWarn:
-// 		return writer.Warning(message)
-// 	case slog.LevelError:
-// 		return writer.Err(message)
-// 	default:
-// 		return writer.Info(message)
-// 	}
-// }
+func (h *LogHandler) Handle(_ context.Context, record slog.Record) error {
+	switch record.Level {
+	case slog.LevelDebug:
+		return nil
+	case slog.LevelInfo:
+		return nil
+	case slog.LevelWarn:
+		return nil
+	case slog.LevelError:
+		return nil
+	default:
+		return nil
+	}
+}
 
 func (h *LogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return h
@@ -60,9 +61,9 @@ type Platform interface {
 func NewPlatform(serviceNamespace, GOOS string) (Platform, error) {
 	switch GOOS {
 	case "linux":
-		return NewPlatformLinux(serviceNamespace)
+		return linux.NewPlatformLinux(serviceNamespace)
 	case "windows":
-		return NewPlatformWindows(serviceNamespace)
+		return windows.NewPlatformWindows(serviceNamespace)
 	case "darwin":
 		return NewPlatformDarwin(serviceNamespace)
 	default:

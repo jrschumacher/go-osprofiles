@@ -1,11 +1,16 @@
-package platform
+//go:build !windows
+
+package linux
 
 import (
+	"context"
 	"log/slog"
 	"log/syslog"
 	"os"
 	"os/user"
 	"path/filepath"
+
+	"github.com/jrschumacher/go-osprofiles/pkg/platform"
 )
 
 type PlatformLinux struct {
@@ -14,15 +19,41 @@ type PlatformLinux struct {
 	userHomeDir      string
 }
 
+type SyslogHandler struct {
+	platform.LogHandler
+	writer *syslog.Writer
+	level  slog.Level
+}
+
+func NewSyslogHandler(writer *syslog.Writer, level slog.Level) *SyslogHandler {
+	return &SyslogHandler{writer: writer, level: level}
+}
+
+func (h *SyslogHandler) Handle(_ context.Context, record slog.Record) error {
+	message := record.Message
+	switch record.Level {
+	case slog.LevelDebug:
+		return h.writer.Debug(message)
+	case slog.LevelInfo:
+		return h.writer.Info(message)
+	case slog.LevelWarn:
+		return h.writer.Warning(message)
+	case slog.LevelError:
+		return h.writer.Err(message)
+	default:
+		return h.writer.Info(message)
+	}
+}
+
 func NewPlatformLinux(serviceNamespace string) (*PlatformLinux, error) {
 	usr, err := user.Current()
 	if err != nil {
-		return nil, ErrGettingUserOS
+		return nil, platform.ErrGettingUserOS
 	}
 
 	usrHomeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, ErrGettingUserOS
+		return nil, platform.ErrGettingUserOS
 	}
 
 	return &PlatformLinux{usr.Username, serviceNamespace, usrHomeDir}, nil
