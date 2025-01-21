@@ -18,11 +18,10 @@ import (
 type EventLogHandler struct {
 	LogHandler
 	writer *eventlog.Log
-	level  slog.Level
 }
 
-func NewEventLogHandler(writer *eventlog.Log, level slog.Level) *EventLogHandler {
-	return &EventLogHandler{writer: writer, level: level}
+func NewEventLogHandler(writer *eventlog.Log) *EventLogHandler {
+	return &EventLogHandler{writer: writer}
 }
 
 func (h *EventLogHandler) Handle(_ context.Context, record slog.Record) error {
@@ -107,7 +106,7 @@ func (p PlatformWindows) GetLogger() *slog.Logger {
 	}
 	defer writer.Close()
 
-	handler := NewEventLogHandler(writer, slog.LevelInfo)
+	handler := NewEventLogHandler(writer)
 	logger := slog.New(handler)
 	return logger
 }
