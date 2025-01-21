@@ -4,13 +4,44 @@
 package platform
 
 import (
+	"context"
 	"log/slog"
+	"math/rand"
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"golang.org/x/sys/windows/svc/eventlog"
 )
+
+type EventLogHandler struct {
+	LogHandler
+	writer *eventlog.Log
+	level  slog.Level
+}
+
+func NewEventLogHandler(writer *eventlog.Log, level slog.Level) *EventLogHandler {
+	return &EventLogHandler{writer: writer, level: level}
+}
+
+func (h *EventLogHandler) Handle(_ context.Context, record slog.Record) error {
+	message := record.Message
+	randNum := rand.Intn(1000) + 1
+	eid := uint32(randNum)
+	switch record.Level {
+	case slog.LevelDebug:
+		return h.writer.Info(eid, message)
+	case slog.LevelInfo:
+		return h.writer.Info(eid, message)
+	case slog.LevelWarn:
+		return h.writer.Warning(eid, message)
+	case slog.LevelError:
+		return h.writer.Error(eid, message)
+	default:
+		return h.writer.Info(eid, message)
+	}
+}
 
 type PlatformWindows struct {
 	username         string
@@ -62,13 +93,21 @@ func (p PlatformWindows) GetConfigDirectory() string {
 
 // Return slog.Logger for Windows
 func (p PlatformWindows) GetLogger() *slog.Logger {
+	// Check if the event source exists and create it if it doesn't
+	if err := eventlog.InstallAsEventCreate(p.serviceNamespace, eventlog.Error|eventlog.Warning|eventlog.Info); err != nil {
+		if !strings.Contains(err.Error(), "registry key already exists") {
+			panic(err)
+		}
+	}
+
+	// Open the event log
 	writer, err := eventlog.Open(p.serviceNamespace)
 	if err != nil {
 		panic(err)
 	}
 	defer writer.Close()
 
-	handler := NewSyslogHandler(writer, slog.LevelInfo)
+	handler := NewEventLogHandler(writer, slog.LevelInfo)
 	logger := slog.New(handler)
 	return logger
 }

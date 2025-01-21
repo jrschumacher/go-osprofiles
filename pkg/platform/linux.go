@@ -12,20 +12,13 @@ import (
 	"path/filepath"
 )
 
-type PlatformLinux struct {
-	username         string
-	serviceNamespace string
-	userHomeDir      string
-}
-
 type SyslogHandler struct {
 	LogHandler
 	writer *syslog.Writer
-	level  slog.Level
 }
 
-func NewSyslogHandler(writer *syslog.Writer, level slog.Level) *SyslogHandler {
-	return &SyslogHandler{writer: writer, level: level}
+func NewSyslogHandler(writer *syslog.Writer) *SyslogHandler {
+	return &SyslogHandler{writer: writer}
 }
 
 func (h *SyslogHandler) Handle(_ context.Context, record slog.Record) error {
@@ -42,6 +35,12 @@ func (h *SyslogHandler) Handle(_ context.Context, record slog.Record) error {
 	default:
 		return h.writer.Info(message)
 	}
+}
+
+type PlatformLinux struct {
+	username         string
+	serviceNamespace string
+	userHomeDir      string
 }
 
 func NewOSPlatform(serviceNamespace string) (*PlatformLinux, error) {
@@ -88,7 +87,7 @@ func (p PlatformLinux) GetLogger() *slog.Logger {
 	}
 	defer writer.Close()
 
-	handler := NewSyslogHandler(writer, slog.LevelInfo)
+	handler := NewSyslogHandler(writer)
 	logger := slog.New(handler)
 	return logger
 }

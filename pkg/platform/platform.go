@@ -6,12 +6,6 @@ import (
 )
 
 type LogHandler struct {
-	// writer interface{}
-	// level  slog.Level
-}
-
-func NewLogHandler(writer interface{}, level slog.Level) *LogHandler {
-	return &LogHandler{}
 }
 
 func (h *LogHandler) Enabled(_ context.Context, _ slog.Level) bool {
@@ -19,18 +13,7 @@ func (h *LogHandler) Enabled(_ context.Context, _ slog.Level) bool {
 }
 
 func (h *LogHandler) Handle(_ context.Context, record slog.Record) error {
-	switch record.Level {
-	case slog.LevelDebug:
-		return nil
-	case slog.LevelInfo:
-		return nil
-	case slog.LevelWarn:
-		return nil
-	case slog.LevelError:
-		return nil
-	default:
-		return nil
-	}
+	return nil
 }
 
 func (h *LogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
