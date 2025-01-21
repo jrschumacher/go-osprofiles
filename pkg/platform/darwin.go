@@ -31,17 +31,31 @@ func (p PlatformDarwin) GetUsername() string {
 	return p.username
 }
 
-// GetUserHomeDir returns the user's home directory on macOS.
-func (p PlatformDarwin) GetUserHomeDir() string {
+// UserHomeDir returns the user's home directory on macOS.
+func (p PlatformDarwin) UserHomeDir() string {
 	return p.userHomeDir
 }
 
-// GetDataDirectory returns the data directory for macOS.
-func (p PlatformDarwin) GetDataDirectory() string {
+// UserAppDataDirectory returns the namespaced user-level data directory for macOS.
+// i.e. ~/Library/Application Support/<serviceNamespace>
+func (p PlatformDarwin) UserAppDataDirectory() string {
 	return filepath.Join(p.userHomeDir, "Library", "Application Support", p.serviceNamespace)
 }
 
-// GetConfigDirectory returns the config directory for macOS.
-func (p PlatformDarwin) GetConfigDirectory() string {
-	return filepath.Join(p.userHomeDir, "Library", "Preferences", p.serviceNamespace)
+// UserAppConfigDirectory returns the namespaced user-level config directory for macOS.
+// i.e. ~/Library/Application Support/<serviceNamespace>
+func (p PlatformDarwin) UserAppConfigDirectory() string {
+	return filepath.Join(p.userHomeDir, "Library", "Application Support", p.serviceNamespace)
+}
+
+// SystemAppDataDirectory returns the namespaced system-level data directory for macOS.
+// i.e. /Library/Application Support/<serviceNamespace>
+func (p PlatformDarwin) SystemAppDataDirectory() string {
+	return filepath.Join("/", "Library", "Application Support", p.serviceNamespace)
+}
+
+// SystemAppConfigDirectory returns the namespaced system-level config directory for macOS.
+// i.e. /Library/Application Support/<serviceNamespace>
+func (p PlatformDarwin) SystemAppConfigDirectory() string {
+	return filepath.Join("/", "Library", "Application Support", p.serviceNamespace)
 }
