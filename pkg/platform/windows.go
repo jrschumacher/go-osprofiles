@@ -39,17 +39,17 @@ func NewPlatformWindows(serviceNamespace string) (*PlatformWindows, error) {
 
 	programFiles := os.Getenv(envKeyProgramFiles)
 	if programFiles == "" {
-		return nil, fmt.Errorf("failed to detect %%%s%%: %w", envKeyProgramFiles, ErrGettingUserOS)
+		return nil, fmt.Errorf("failed to detect %%%s%% in environment: %w", envKeyProgramFiles, ErrGettingUserOS)
 	}
 
 	programData := os.Getenv(envKeyProgramData)
 	if programData == "" {
-		return nil, fmt.Errorf("failed to detect %%%s%%: %w", envKeyProgramData, ErrGettingUserOS)
+		return nil, fmt.Errorf("failed to detect %%%s%% in environment: %w", envKeyProgramData, ErrGettingUserOS)
 	}
 
 	localAppData := os.Getenv(envKeyLocalAppData)
 	if localAppData == "" {
-		return nil, fmt.Errorf("failed to detect %%%s%%: %w", envKeyLocalAppData, ErrGettingUserOS)
+		return nil, fmt.Errorf("failed to detect %%%s%% in environment: %w", envKeyLocalAppData, ErrGettingUserOS)
 	}
 
 	return &PlatformWindows{
