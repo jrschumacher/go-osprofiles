@@ -54,17 +54,6 @@ type Platform interface {
 	GetLogger() *slog.Logger
 }
 
-// NewPlatform creates a new platform object based on the current operating system
-// func NewPlatform(serviceNamespace, GOOS string) (Platform, error) {
-// 	return NewPlatform(serviceNamespace)
-// 	// switch GOOS {
-// 	// case "linux":
-// 	// 	return linux.NewPlatformLinux(serviceNamespace)
-// 	// case "windows":
-// 	// 	return windows.NewPlatformWindows(serviceNamespace)
-// 	// case "darwin":
-// 	// 	return NewPlatformDarwin(serviceNamespace)
-// 	// default:
-// 	// 	return nil, ErrGettingUserOS
-// 	// }
-// }
+func NewPlatform(serviceNamespace string) (Platform, error) {
+	return NewOSPlatform(serviceNamespace)
+}

@@ -44,7 +44,7 @@ func (h *SyslogHandler) Handle(_ context.Context, record slog.Record) error {
 	}
 }
 
-func NewPlatformLinux(serviceNamespace string) (*PlatformLinux, error) {
+func NewOSPlatform(serviceNamespace string) (*PlatformLinux, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return nil, ErrGettingUserOS

@@ -16,7 +16,7 @@ type PlatformDarwin struct {
 	userHomeDir      string
 }
 
-func NewPlatformDarwin(serviceNamespace string) (*PlatformDarwin, error) {
+func NewOSPlatform(serviceNamespace string) (*PlatformDarwin, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return nil, ErrGettingUserOS

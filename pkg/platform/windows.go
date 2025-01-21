@@ -18,7 +18,7 @@ type PlatformWindows struct {
 	userHomeDir      string
 }
 
-func NewPlatform(serviceNamespace string) (*PlatformWindows, error) {
+func NewOSPlatform(serviceNamespace string) (*PlatformWindows, error) {
 	// On Windows, use user.Current() if available, else fallback to environment variable
 	usr, err := user.Current()
 	if err != nil {
