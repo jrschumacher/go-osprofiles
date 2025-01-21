@@ -57,4 +57,5 @@ jobs:
       - name: Unit Tests with the Go CLI
         run: |
           echo 'somecredstorepass' | gnome-keyring-daemon --unlock
-          go test ./... -short -race -cover
+          go test ./... -short -race -cover -count=1
+
