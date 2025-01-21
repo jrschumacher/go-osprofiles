@@ -10,8 +10,6 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-
-	"github.com/jrschumacher/go-osprofiles/pkg"
 )
 
 type UnifiedLoggingHandler struct {
@@ -24,7 +22,7 @@ func NewUnifiedLoggingHandler() *UnifiedLoggingHandler {
 
 func (h *UnifiedLoggingHandler) Handle(_ context.Context, record slog.Record) error {
 	message := record.Message
-	pkg.LogMessage(message)
+	LogMessage(message)
 	return nil
 }
 

@@ -1,24 +1,25 @@
 //go:build linux
 // +build linux
 
-package platform
+package test
 
 import (
 	"strings"
 	"testing"
 
+	"github.com/jrschumacher/go-osprofiles/pkg/platform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_PlatformLinux(t *testing.T) {
 	fakeAppName := "test-linux-app"
-	plat, err := NewPlatform(fakeAppName)
+	plat, err := platform.NewPlatform(fakeAppName)
 
 	require.NoError(t, err)
 	require.NotNil(t, plat)
 
-	linux, ok := plat.(*PlatformLinux)
+	linux, ok := plat.(*platform.PlatformLinux)
 	require.True(t, ok)
 	require.NotNil(t, linux)
 
