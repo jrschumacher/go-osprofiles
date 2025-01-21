@@ -38,6 +38,9 @@ jobs:
           # Optional: golangci-lint command line arguments.
           args: --timeout=10m --out-format=colored-line-number
   tests:
+    strategy:
+        matrix:
+          os: [windows-latest, ubuntu-latest, macos-latest]
     name: unit and integration tests
     runs-on: ubuntu-latest
     steps:
