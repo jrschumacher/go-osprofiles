@@ -3,19 +3,6 @@
 
 package platform
 
-/*
-#include <os/log.h>
-#include <stdlib.h>
-
-void logInfo(const char *message) {
-    os_log(OS_LOG_DEFAULT, "%{public}s", message);
-}
-
-void logError(const char *message) {
-    os_log(OS_LOG_DEFAULT, "Error: %{public}s", message);
-}
-*/
-
 import (
 	"C"
 	"context"
@@ -26,20 +13,6 @@ import (
 
 	"github.com/jrschumacher/go-osprofiles/pkg"
 )
-
-// // logMessage logs an informational message to Unified Logging.
-// func logMessage(message string) {
-// 	cMessage := C.CString(message)
-// 	defer C.free(unsafe.Pointer(cMessage)) // Free C string after use
-// 	C.logInfo(cMessage)                    // Call C function to log info
-// }
-
-// // logError logs an error message to Unified Logging.
-// func logError(message string) {
-// 	cMessage := C.CString(message)
-// 	defer C.free(unsafe.Pointer(cMessage)) // Free C string after use
-// 	C.logError(cMessage)                   // Call C function to log error
-// }
 
 type UnifiedLoggingHandler struct {
 	LogHandler
@@ -52,11 +25,6 @@ func NewUnifiedLoggingHandler() *UnifiedLoggingHandler {
 func (h *UnifiedLoggingHandler) Handle(_ context.Context, record slog.Record) error {
 	message := record.Message
 	pkg.LogMessage(message)
-	// cMessage := C.CString(message)
-	// println(cMessage)
-	// // defer C.free(unsafe.Pointer(cMessage))
-	// // could not determine kind of name for C.log_to_unified
-	// C.log_to_unified(cMessage)
 	return nil
 }
 
