@@ -31,5 +31,5 @@ func Test_PlatformMacOS(t *testing.T) {
 
 	logger := darwin.GetLogger()
 	assert.NotNil(t, logger)
-	logger.Info("Testing macOS logger")
+	logger.Info("Testing macOS logger VIRTRU")
 }
