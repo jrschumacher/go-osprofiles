@@ -3,9 +3,6 @@ package platform
 import (
 	"context"
 	"log/slog"
-
-	"github.com/jrschumacher/go-osprofiles/pkg/platform/linux"
-	"github.com/jrschumacher/go-osprofiles/pkg/platform/windows"
 )
 
 type LogHandler struct {
@@ -58,15 +55,16 @@ type Platform interface {
 }
 
 // NewPlatform creates a new platform object based on the current operating system
-func NewPlatform(serviceNamespace, GOOS string) (Platform, error) {
-	switch GOOS {
-	case "linux":
-		return linux.NewPlatformLinux(serviceNamespace)
-	case "windows":
-		return windows.NewPlatformWindows(serviceNamespace)
-	case "darwin":
-		return NewPlatformDarwin(serviceNamespace)
-	default:
-		return nil, ErrGettingUserOS
-	}
-}
+// func NewPlatform(serviceNamespace, GOOS string) (Platform, error) {
+// 	return NewPlatform(serviceNamespace)
+// 	// switch GOOS {
+// 	// case "linux":
+// 	// 	return linux.NewPlatformLinux(serviceNamespace)
+// 	// case "windows":
+// 	// 	return windows.NewPlatformWindows(serviceNamespace)
+// 	// case "darwin":
+// 	// 	return NewPlatformDarwin(serviceNamespace)
+// 	// default:
+// 	// 	return nil, ErrGettingUserOS
+// 	// }
+// }
