@@ -3,12 +3,47 @@
 
 package platform
 
+/*
+#cgo LDFLAGS: -framework Foundation -framework CoreFoundation -framework os
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <os/log.h>
+#include "os_log_wrapper.c"
+#include <os/log.h>
+
+void log_to_unified(const char *message) {
+	os_log(OS_LOG_DEFAULT, "%{public}s", message);
+}
+*/
+
 import (
+	"C"
+	"context"
 	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
 )
+
+type UnifiedLoggingHandler struct {
+	LogHandler
+}
+
+func NewUnifiedLoggingHandler() *UnifiedLoggingHandler {
+	return &UnifiedLoggingHandler{}
+}
+
+func (h *UnifiedLoggingHandler) Handle(_ context.Context, record slog.Record) error {
+	message := record.Message
+	cMessage := C.CString(message)
+	println(cMessage)
+	// defer C.free(unsafe.Pointer(cMessage))
+	// could not determine kind of name for C.log_to_unified
+	C.log_to_unified(cMessage)
+	return nil
+}
 
 type PlatformDarwin struct {
 	username         string
@@ -52,6 +87,7 @@ func (p PlatformDarwin) GetConfigDirectory() string {
 
 // Return slog.Logger for macOS
 func (p PlatformDarwin) GetLogger() *slog.Logger {
-	// TODO: Implement logger
-	return &slog.Logger{}
+	handler := NewUnifiedLoggingHandler()
+	logger := slog.New(handler)
+	return logger
 }
