@@ -23,14 +23,27 @@ func Test_PlatformMacOS(t *testing.T) {
 	require.True(t, ok)
 	require.NotNil(t, darwin)
 
-	configDir := darwin.GetConfigDirectory()
+	// user scoped
+	configDir := darwin.UserAppConfigDirectory()
 	assert.True(t, strings.HasSuffix(configDir, fakeAppName))
+	assert.True(t, strings.Contains(configDir, "/Library/Application Support"))
+	assert.False(t, strings.HasPrefix(configDir, "/Library/Application Support"))
 
-	dataDir := darwin.GetDataDirectory()
+	dataDir := darwin.UserAppDataDirectory()
 	assert.True(t, strings.HasSuffix(dataDir, fakeAppName))
-	assert.True(t, strings.Contains(dataDir, "Library/Application Support"))
+	assert.True(t, strings.Contains(dataDir, "/Library/Application Support"))
+	assert.False(t, strings.HasPrefix(configDir, "/Library/Application Support"))
 
-	logger := darwin.GetLogger()
+	// system scoped
+	configDir = darwin.SystemAppConfigDirectory()
+	assert.True(t, strings.HasSuffix(configDir, fakeAppName))
+	assert.True(t, strings.HasPrefix(configDir, "/Library/Application Support"))
+
+	dataDir = darwin.SystemAppDataDirectory()
+	assert.True(t, strings.HasSuffix(dataDir, fakeAppName))
+	assert.True(t, strings.HasPrefix(dataDir, "/Library/Application Support"))
+
+	logger := darwin.Logger()
 	assert.NotNil(t, logger)
 	logger.Info("Testing macOS logger")
 }

@@ -23,15 +23,29 @@ func Test_PlatformLinux(t *testing.T) {
 	require.True(t, ok)
 	require.NotNil(t, linux)
 
-	configDir := linux.GetConfigDirectory()
+	// user scoped
+	configDir := linux.UserAppConfigDirectory()
 	assert.True(t, strings.HasSuffix(configDir, fakeAppName))
-	assert.True(t, strings.Contains(configDir, ".config"))
+	assert.True(t, strings.Contains(configDir, "/.config"))
+	assert.False(t, strings.HasPrefix(configDir, "/.config"))
+	assert.False(t, strings.HasPrefix(configDir, "/etc"))
 
-	dataDir := linux.GetDataDirectory()
+	dataDir := linux.UserAppDataDirectory()
 	assert.True(t, strings.HasSuffix(dataDir, fakeAppName))
-	assert.True(t, strings.Contains(dataDir, ".local/share"))
+	assert.True(t, strings.Contains(dataDir, "/.local/share"))
+	assert.False(t, strings.HasPrefix(dataDir, "/var/lib"))
+	assert.False(t, strings.HasPrefix(dataDir, "/.local/share"))
 
-	logger := linux.GetLogger()
+	// system scoped
+	configDir = linux.SystemAppConfigDirectory()
+	assert.True(t, strings.HasSuffix(configDir, fakeAppName))
+	assert.True(t, strings.HasPrefix(configDir, "/etc"))
+
+	dataDir = linux.SystemAppDataDirectory()
+	assert.True(t, strings.HasSuffix(dataDir, fakeAppName))
+	assert.True(t, strings.HasPrefix(dataDir, "/var/lib"))
+
+	logger := linux.Logger()
 	assert.NotNil(t, logger)
 	logger.Info("Testing Linux logger")
 }

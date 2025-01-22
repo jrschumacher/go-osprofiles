@@ -57,30 +57,30 @@ func NewOSPlatform(serviceNamespace string) (*PlatformLinux, error) {
 	return &PlatformLinux{usr.Username, serviceNamespace, usrHomeDir}, nil
 }
 
-// TODO: validate these are correct
-
 // GetUsername returns the username for the Linux OS.
 func (p PlatformLinux) GetUsername() string {
 	return p.username
 }
 
-// GetUserHomeDir returns the user's home directory on the Linux OS.
-func (p PlatformLinux) GetUserHomeDir() string {
+// UserHomeDir returns the user's home directory on the Linux OS.
+func (p PlatformLinux) UserHomeDir() string {
 	return p.userHomeDir
 }
 
-// GetDataDirectory returns the data directory for Linux.
-func (p PlatformLinux) GetDataDirectory() string {
+// UserAppDataDirectory returns the data directory for Linux.
+// i.e. ~/.local/share/<serviceNamespace>
+func (p PlatformLinux) UserAppDataDirectory() string {
 	return filepath.Join(p.userHomeDir, ".local", "share", p.serviceNamespace)
 }
 
-// GetConfigDirectory returns the config directory for Linux.
-func (p PlatformLinux) GetConfigDirectory() string {
+// UserAppConfigDirectory returns the config directory for Linux.
+// i.e. ~/.config/<serviceNamespace>
+func (p PlatformLinux) UserAppConfigDirectory() string {
 	return filepath.Join(p.userHomeDir, ".config", p.serviceNamespace)
 }
 
 // Return slog.Logger for Linux
-func (p PlatformLinux) GetLogger() *slog.Logger {
+func (p PlatformLinux) Logger() *slog.Logger {
 	writer, err := syslog.New(syslog.LOG_INFO|syslog.LOG_USER, p.serviceNamespace)
 	if err != nil {
 		panic(err)
@@ -90,4 +90,16 @@ func (p PlatformLinux) GetLogger() *slog.Logger {
 	handler := NewSyslogHandler(writer)
 	logger := slog.New(handler)
 	return logger
+}
+
+// SystemAppDataDirectory returns the system-level data directory for Linux.
+// i.e. /var/lib/<serviceNamespace>
+func (p PlatformLinux) SystemAppDataDirectory() string {
+	return filepath.Join("/", "var", "lib", p.serviceNamespace)
+}
+
+// SystemAppConfigDirectory returns the system-level config directory for Linux.
+// i.e. /etc/<serviceNamespace>
+func (p PlatformLinux) SystemAppConfigDirectory() string {
+	return filepath.Join("/", "etc", p.serviceNamespace)
 }

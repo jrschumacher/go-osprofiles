@@ -5,6 +5,7 @@ package platform
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"math/rand"
 	"os"
@@ -46,14 +47,23 @@ type PlatformWindows struct {
 	username         string
 	serviceNamespace string
 	userHomeDir      string
+	programFiles     string
+	programData      string
+	localAppData     string
 }
+
+const (
+	EnvKeyLocalAppData = "LOCALAPPDATA"
+	EnvKeyProgramData  = "PROGRAMDATA"
+	EnvKeyProgramFiles = "PROGRAMFILES"
+	EnvKeyUsername     = "USERNAME"
+)
 
 func NewOSPlatform(serviceNamespace string) (*PlatformWindows, error) {
 	// On Windows, use user.Current() if available, else fallback to environment variable
 	usr, err := user.Current()
 	if err != nil {
-		// TODO: test this on windows
-		usr = &user.User{Username: os.Getenv("USERNAME")}
+		usr = &user.User{Username: os.Getenv(EnvKeyUsername)}
 		if usr.Username == "" {
 			return nil, ErrGettingUserOS
 		}
@@ -62,36 +72,68 @@ func NewOSPlatform(serviceNamespace string) (*PlatformWindows, error) {
 	if err != nil {
 		return nil, ErrGettingUserOS
 	}
-	return &PlatformWindows{usr.Username, serviceNamespace, usrHomeDir}, nil
-}
 
-// TODO: validate these are correct
+	programFiles := os.Getenv(EnvKeyProgramFiles)
+	if programFiles == "" {
+		return nil, fmt.Errorf("failed to detect %%%s%% in environment: %w", EnvKeyProgramFiles, ErrGettingUserOS)
+	}
+
+	programData := os.Getenv(EnvKeyProgramData)
+	if programData == "" {
+		return nil, fmt.Errorf("failed to detect %%%s%% in environment: %w", EnvKeyProgramData, ErrGettingUserOS)
+	}
+
+	localAppData := os.Getenv(EnvKeyLocalAppData)
+	if localAppData == "" {
+		return nil, fmt.Errorf("failed to detect %%%s%% in environment: %w", EnvKeyLocalAppData, ErrGettingUserOS)
+	}
+
+	return &PlatformWindows{
+		username:         usr.Username,
+		serviceNamespace: serviceNamespace,
+		userHomeDir:      usrHomeDir,
+		programFiles:     programFiles,
+		programData:      programData,
+		localAppData:     localAppData,
+	}, nil
+}
 
 // GetUsername returns the username for Windows.
 func (p PlatformWindows) GetUsername() string {
 	return p.username
 }
 
-// GetUserHomeDir returns the user's home directory on Windows.
-func (p PlatformWindows) GetUserHomeDir() string {
+// UserHomeDir returns the user's home directory on Windows.
+func (p PlatformWindows) UserHomeDir() string {
 	return p.userHomeDir
 }
 
-// TODO: it looks like this is different depending on OS version, so we should consider that
-// https://learn.microsoft.com/en-us/windows/apps/design/app-settings/store-and-retrieve-app-data
-
-// GetDataDirectory returns the data directory for Windows.
-func (p PlatformWindows) GetDataDirectory() string {
-	return filepath.Join(p.userHomeDir, "AppData", "Roaming", p.serviceNamespace)
+// UserAppDataDirectory returns the namespaced user-level data directory for windows.
+// i.e. %LocalAppData%\<serviceNamespace>
+func (p PlatformWindows) UserAppDataDirectory() string {
+	return filepath.Join(p.localAppData, p.serviceNamespace)
 }
 
-// GetConfigDirectory returns the config directory for Windows.
-func (p PlatformWindows) GetConfigDirectory() string {
-	return filepath.Join(p.userHomeDir, "AppData", "Local", p.serviceNamespace)
+// UserAppConfigDirectory returns the namespaced user-level config directory for windows.
+// i.e. %LocalAppData%\<serviceNamespace>
+func (p PlatformWindows) UserAppConfigDirectory() string {
+	return filepath.Join(p.localAppData, p.serviceNamespace)
+}
+
+// SystemAppDataDirectory returns the namespaced system-level data directory for windows.
+// %ProgramData%\<serviceNamespace>
+func (p PlatformWindows) SystemAppDataDirectory() string {
+	return filepath.Join(p.programData, p.serviceNamespace)
+}
+
+// SystemAppConfigDirectory returns the namespaced system-level config directory for windows.
+// %ProgramFiles%\<serviceNamespace>
+func (p PlatformWindows) SystemAppConfigDirectory() string {
+	return filepath.Join(p.programFiles, p.serviceNamespace)
 }
 
 // Return slog.Logger for Windows
-func (p PlatformWindows) GetLogger() *slog.Logger {
+func (p PlatformWindows) Logger() *slog.Logger {
 	// Check if the event source exists and create it if it doesn't
 	if err := eventlog.InstallAsEventCreate(p.serviceNamespace, eventlog.Error|eventlog.Warning|eventlog.Info); err != nil {
 		if !strings.Contains(err.Error(), "registry key already exists") {
