@@ -1,10 +1,41 @@
+//go:build linux
+// +build linux
+
 package platform
 
 import (
+	"context"
+	"log/slog"
+	"log/syslog"
 	"os"
 	"os/user"
 	"path/filepath"
 )
+
+type SyslogHandler struct {
+	LogHandler
+	writer *syslog.Writer
+}
+
+func NewSyslogHandler(writer *syslog.Writer) *SyslogHandler {
+	return &SyslogHandler{writer: writer}
+}
+
+func (h *SyslogHandler) Handle(_ context.Context, record slog.Record) error {
+	message := record.Message
+	switch record.Level {
+	case slog.LevelDebug:
+		return h.writer.Debug(message)
+	case slog.LevelInfo:
+		return h.writer.Info(message)
+	case slog.LevelWarn:
+		return h.writer.Warning(message)
+	case slog.LevelError:
+		return h.writer.Err(message)
+	default:
+		return h.writer.Info(message)
+	}
+}
 
 type PlatformLinux struct {
 	username         string
@@ -12,7 +43,7 @@ type PlatformLinux struct {
 	userHomeDir      string
 }
 
-func NewPlatformLinux(serviceNamespace string) (*PlatformLinux, error) {
+func NewOSPlatform(serviceNamespace string) (*PlatformLinux, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return nil, ErrGettingUserOS
@@ -46,6 +77,19 @@ func (p PlatformLinux) UserAppDataDirectory() string {
 // i.e. ~/.config/<serviceNamespace>
 func (p PlatformLinux) UserAppConfigDirectory() string {
 	return filepath.Join(p.userHomeDir, ".config", p.serviceNamespace)
+}
+
+// Return slog.Logger for Linux
+func (p PlatformLinux) Logger() *slog.Logger {
+	writer, err := syslog.New(syslog.LOG_INFO|syslog.LOG_USER, p.serviceNamespace)
+	if err != nil {
+		panic(err)
+	}
+	defer writer.Close()
+
+	handler := NewSyslogHandler(writer)
+	logger := slog.New(handler)
+	return logger
 }
 
 // SystemAppDataDirectory returns the system-level data directory for Linux.

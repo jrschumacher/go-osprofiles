@@ -1,10 +1,30 @@
+//go:build darwin
+// +build darwin
+
 package platform
 
 import (
+	"C"
+	"context"
+	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
 )
+
+type UnifiedLoggingHandler struct {
+	LogHandler
+}
+
+func NewUnifiedLoggingHandler() *UnifiedLoggingHandler {
+	return &UnifiedLoggingHandler{}
+}
+
+func (h *UnifiedLoggingHandler) Handle(_ context.Context, record slog.Record) error {
+	message := record.Message
+	LogMessage(message)
+	return nil
+}
 
 type PlatformDarwin struct {
 	username         string
@@ -12,7 +32,7 @@ type PlatformDarwin struct {
 	userHomeDir      string
 }
 
-func NewPlatformDarwin(serviceNamespace string) (*PlatformDarwin, error) {
+func NewOSPlatform(serviceNamespace string) (*PlatformDarwin, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return nil, ErrGettingUserOS
@@ -58,4 +78,11 @@ func (p PlatformDarwin) SystemAppDataDirectory() string {
 // i.e. /Library/Application Support/<serviceNamespace>
 func (p PlatformDarwin) SystemAppConfigDirectory() string {
 	return filepath.Join("/", "Library", "Application Support", p.serviceNamespace)
+}
+
+// Return slog.Logger for macOS
+func (p PlatformDarwin) Logger() *slog.Logger {
+	handler := NewUnifiedLoggingHandler()
+	logger := slog.New(handler)
+	return logger
 }

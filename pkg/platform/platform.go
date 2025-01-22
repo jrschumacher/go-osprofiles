@@ -1,5 +1,29 @@
 package platform
 
+import (
+	"context"
+	"log/slog"
+)
+
+type LogHandler struct {
+}
+
+func (h *LogHandler) Enabled(_ context.Context, _ slog.Level) bool {
+	return true
+}
+
+func (h *LogHandler) Handle(_ context.Context, record slog.Record) error {
+	return nil
+}
+
+func (h *LogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return h
+}
+
+func (h *LogHandler) WithGroup(name string) slog.Handler {
+	return h
+}
+
 type Platform interface {
 	// Get the username as known to the operating system
 	GetUsername() string
@@ -13,18 +37,10 @@ type Platform interface {
 	SystemAppDataDirectory() string
 	// Get the namespaced system-level config directory for the platform
 	SystemAppConfigDirectory() string
+	// Get the logger for the platform
+	Logger() *slog.Logger
 }
 
-// NewPlatform creates a new platform object based on the current operating system
-func NewPlatform(serviceNamespace, GOOS string) (Platform, error) {
-	switch GOOS {
-	case "linux":
-		return NewPlatformLinux(serviceNamespace)
-	case "windows":
-		return NewPlatformWindows(serviceNamespace)
-	case "darwin":
-		return NewPlatformDarwin(serviceNamespace)
-	default:
-		return nil, ErrGettingUserOS
-	}
+func NewPlatform(serviceNamespace string) (Platform, error) {
+	return NewOSPlatform(serviceNamespace)
 }
