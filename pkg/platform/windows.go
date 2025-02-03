@@ -10,6 +10,7 @@ import (
 type PlatformWindows struct {
 	username         string
 	serviceNamespace string
+	servicePublisher string
 	userHomeDir      string
 	programFiles     string
 	programData      string
@@ -23,7 +24,7 @@ const (
 	envKeyUsername     = "USERNAME"
 )
 
-func NewPlatformWindows(serviceNamespace string) (*PlatformWindows, error) {
+func NewPlatformWindows(servicePublisher, serviceNamespace string) (*PlatformWindows, error) {
 	// On Windows, use user.Current() if available, else fallback to environment variable
 	usr, err := user.Current()
 	if err != nil {
@@ -55,6 +56,7 @@ func NewPlatformWindows(serviceNamespace string) (*PlatformWindows, error) {
 	return &PlatformWindows{
 		username:         usr.Username,
 		serviceNamespace: serviceNamespace,
+		servicePublisher: servicePublisher,
 		userHomeDir:      usrHomeDir,
 		programFiles:     programFiles,
 		programData:      programData,

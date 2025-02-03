@@ -9,10 +9,11 @@ import (
 type PlatformLinux struct {
 	username         string
 	serviceNamespace string
+	servicePublisher string
 	userHomeDir      string
 }
 
-func NewPlatformLinux(serviceNamespace string) (*PlatformLinux, error) {
+func NewPlatformLinux(servicePublisher, serviceNamespace string) (*PlatformLinux, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return nil, ErrGettingUserOS
@@ -23,7 +24,7 @@ func NewPlatformLinux(serviceNamespace string) (*PlatformLinux, error) {
 		return nil, ErrGettingUserOS
 	}
 
-	return &PlatformLinux{usr.Username, serviceNamespace, usrHomeDir}, nil
+	return &PlatformLinux{usr.Username, serviceNamespace, servicePublisher, usrHomeDir}, nil
 }
 
 // GetUsername returns the username for the Linux OS.
@@ -37,25 +38,45 @@ func (p PlatformLinux) UserHomeDir() string {
 }
 
 // UserAppDataDirectory returns the data directory for Linux.
-// i.e. ~/.local/share/<serviceNamespace>
+// ~/.local/share/<servicePublisher>/<serviceNamespace>
+// ~/.local/share/<serviceNamespace> (if no publisher)
 func (p PlatformLinux) UserAppDataDirectory() string {
-	return filepath.Join(p.userHomeDir, ".local", "share", p.serviceNamespace)
+	path := filepath.Join(p.userHomeDir, ".local", "share")
+	if p.servicePublisher != "" {
+		path = filepath.Join(path, p.servicePublisher)
+	}
+	return filepath.Join(path, p.serviceNamespace)
 }
 
 // UserAppConfigDirectory returns the config directory for Linux.
-// i.e. ~/.config/<serviceNamespace>
+// ~/.config/<servicePublisher>/<serviceNamespace>
+// ~/.config/<serviceNamespace>
 func (p PlatformLinux) UserAppConfigDirectory() string {
-	return filepath.Join(p.userHomeDir, ".config", p.serviceNamespace)
+	path := filepath.Join(p.userHomeDir, ".config")
+	if p.servicePublisher != "" {
+		path = filepath.Join(path, p.servicePublisher)
+	}
+	return filepath.Join(path, p.serviceNamespace)
 }
 
 // SystemAppDataDirectory returns the system-level data directory for Linux.
-// i.e. /var/lib/<serviceNamespace>
+// /usr/local/<servicePublisher>/<serviceNamespace>
+// /usr/local/<serviceNamespace> (if no publisher)
 func (p PlatformLinux) SystemAppDataDirectory() string {
-	return filepath.Join("/", "var", "lib", p.serviceNamespace)
+	path := filepath.Join("/", "usr", "local")
+	if p.servicePublisher != "" {
+		path = filepath.Join(path, p.servicePublisher)
+	}
+	return filepath.Join(path, p.serviceNamespace)
 }
 
 // SystemAppConfigDirectory returns the system-level config directory for Linux.
-// i.e. /etc/<serviceNamespace>
+// /etc/<servicePublisher>/<serviceNamespace>
+// /etc/<serviceNamespace> (if no publisher)
 func (p PlatformLinux) SystemAppConfigDirectory() string {
-	return filepath.Join("/", "etc", p.serviceNamespace)
+	path := filepath.Join("/", "etc")
+	if p.servicePublisher != "" {
+		path = filepath.Join(path, p.servicePublisher)
+	}
+	return filepath.Join(path, p.serviceNamespace)
 }
