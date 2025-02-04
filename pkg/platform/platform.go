@@ -16,14 +16,14 @@ type Platform interface {
 }
 
 // NewPlatform creates a new platform object based on the current operating system
-func NewPlatform(serviceNamespace, GOOS string) (Platform, error) {
+func NewPlatform(servicePublisher, serviceNamespace, GOOS string) (Platform, error) {
 	switch GOOS {
 	case "linux":
-		return NewPlatformLinux(serviceNamespace)
+		return NewPlatformLinux(servicePublisher, serviceNamespace)
 	case "windows":
-		return NewPlatformWindows(serviceNamespace)
+		return NewPlatformWindows(servicePublisher, serviceNamespace)
 	case "darwin":
-		return NewPlatformDarwin(serviceNamespace)
+		return NewPlatformDarwin(servicePublisher, serviceNamespace)
 	default:
 		return nil, ErrGettingUserOS
 	}
