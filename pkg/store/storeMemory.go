@@ -25,11 +25,29 @@ type MemoryMetadata struct {
 	ProfileFormatVersion string `json:"profile_format_version"`
 }
 
+// memoryAppVersion stores the application version for memory store metadata
+var memoryAppVersion string
+
+// WithMemoryAppVersion sets the application version for memory store metadata
+func WithMemoryAppVersion(version string) DriverOpt {
+	return func() error {
+		memoryAppVersion = version
+		return nil
+	}
+}
+
 // NewMemoryStore creates a new in-memory store
 // JSON is used to serialize the data to ensure the interface is consistent with other store implementations
-var NewMemoryStore NewStoreInterface = func(serviceNamespace, key string, _ ...DriverOpt) (StoreInterface, error) {
+var NewMemoryStore NewStoreInterface = func(serviceNamespace, key string, driverOpts ...DriverOpt) (StoreInterface, error) {
 	if err := ValidateNamespaceKey(serviceNamespace, key); err != nil {
 		return nil, err
+	}
+
+	// Apply driver options
+	for _, opt := range driverOpts {
+		if err := opt(); err != nil {
+			return nil, err
+		}
 	}
 
 	memory := make(map[string]interface{})
@@ -80,7 +98,7 @@ func (k *memoryStore) Set(value interface{}) error {
 			CreatedAt:           now,
 			LastModified:        now,
 			GoOSProfilesVersion:  goOSProfilesVersion,
-			AppVersion:          appVersion, // Use global app version
+			AppVersion:          memoryAppVersion, // Use memory store app version
 			ProfileFormatVersion: profileFormatVersion,
 		}
 	}
