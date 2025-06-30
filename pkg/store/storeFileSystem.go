@@ -23,12 +23,17 @@ type fileStore struct {
 	filePath            string
 }
 
-// Metadata structure for unencrypted metadata about the encrypted file
-type fileMetadata struct {
+// FileMetadata structure for unencrypted metadata about the encrypted file
+type FileMetadata struct {
 	ProfileName   string `json:"profile_name"`
 	CreatedAt     string `json:"created_at"`
 	EncryptionAlg string `json:"encryption_alg"`
-	Version       string `json:"version"`
+	Version       string `json:"version"` // Legacy field for compatibility
+	
+	// New versioning fields
+	GoOSProfilesVersion  string `json:"go_osprofiles_version,omitempty"`
+	AppVersion          string `json:"app_version,omitempty"`
+	ProfileFormatVersion string `json:"profile_format_version,omitempty"`
 }
 
 const (
@@ -123,7 +128,7 @@ func (f *fileStore) Get() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return decryptData(key, encryptedData)
+	return DecryptData(key, encryptedData)
 }
 
 // Set encrypts and saves data to the file, also saving metadata
@@ -136,7 +141,7 @@ func (f *fileStore) Set(value interface{}) error {
 	if err := json.NewEncoder(&b).Encode(value); err != nil {
 		return err
 	}
-	encryptedData, err := encryptData(key, b.Bytes())
+	encryptedData, err := EncryptData(key, b.Bytes())
 	if err != nil {
 		return err
 	}
@@ -181,8 +186,8 @@ func (f *fileStore) getEncryptionKey() ([]byte, error) {
 	return []byte(keyStr), nil
 }
 
-// encryptData encrypts data using AES-GCM
-func encryptData(key, data []byte) ([]byte, error) {
+// EncryptData encrypts data using AES-GCM
+func EncryptData(key, data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -204,8 +209,8 @@ func encryptData(key, data []byte) ([]byte, error) {
 	return result, nil
 }
 
-// decryptData decrypts data using AES-GCM
-func decryptData(key, encryptedData []byte) ([]byte, error) {
+// DecryptData decrypts data using AES-GCM
+func DecryptData(key, encryptedData []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -224,11 +229,20 @@ func decryptData(key, encryptedData []byte) ([]byte, error) {
 
 // SaveMetadata writes unencrypted metadata to a .nfo file
 func (f *fileStore) SaveMetadata(profileName string) error {
-	metadata := fileMetadata{
+	// Legacy format version for existing file store
+	goOSProfilesVersion := "1.0.0"  // This should match GoOSProfilesVersionCurrent
+	profileFormatVersion := "1.0"   // This represents the legacy file store format
+	
+	metadata := FileMetadata{
 		ProfileName:   profileName,
 		CreatedAt:     time.Now().Format(time.RFC3339),
 		EncryptionAlg: "AES-256-GCM",
-		Version:       f.namespaceVersionURN,
+		Version:       f.namespaceVersionURN, // Legacy field for compatibility
+		
+		// New versioning fields
+		GoOSProfilesVersion:  goOSProfilesVersion,
+		AppVersion:          appVersion, // Use the global app version
+		ProfileFormatVersion: profileFormatVersion,
 	}
 	data, err := json.MarshalIndent(metadata, "", "  ")
 	if err != nil {
@@ -239,13 +253,13 @@ func (f *fileStore) SaveMetadata(profileName string) error {
 }
 
 // LoadMetadata loads and parses metadata from a .nfo file
-func (f *fileStore) LoadMetadata() (*fileMetadata, error) {
+func (f *fileStore) LoadMetadata() (*FileMetadata, error) {
 	metadataFilePath := strings.TrimSuffix(f.filePath, filepath.Ext(f.filePath)) + ".nfo"
 	data, err := os.ReadFile(metadataFilePath)
 	if err != nil {
 		return nil, err
 	}
-	var metadata fileMetadata
+	var metadata FileMetadata
 	if err := json.Unmarshal(data, &metadata); err != nil {
 		return nil, err
 	}

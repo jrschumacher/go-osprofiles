@@ -16,4 +16,12 @@ var (
 	ErrLengthExceeded = errors.New("error: length exceeded")
 
 	ErrStoreDriverSetup = errors.New("error: store driver setup failed")
+
+	// Security-related errors
+	ErrSecurityLevelInvalid          = errors.New("error: invalid security level")
+	ErrSecurityClassificationFailed  = errors.New("error: security classification failed")
+	ErrDuplicateFieldClassification  = errors.New("error: duplicate field classification")
+	ErrSecurityModeUnavailable       = errors.New("error: security mode unavailable")
+	ErrKeyringUnavailable           = errors.New("error: keyring unavailable")
+	ErrSecurityValidationFailed     = errors.New("error: security validation failed")
 )

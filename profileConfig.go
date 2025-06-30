@@ -13,6 +13,8 @@ type ProfileStore struct {
 	// Profile is the struct that holds the profile data and satisfies the NamedProfile interface.
 	// Exported to allow write/read access to the profile data being stored.
 	Profile NamedProfile
+	// temporaryOverrides holds temporary field overrides that don't get persisted
+	temporaryOverrides map[string]interface{}
 }
 
 // NamedProfile is the holder of a profile containing a name and all stored profile data.
@@ -47,8 +49,9 @@ func NewProfileStore(serviceNamespace string, newStore store.NewStoreInterface, 
 	}
 
 	p := &ProfileStore{
-		store:   store,
-		Profile: profile,
+		store:              store,
+		Profile:            profile,
+		temporaryOverrides: make(map[string]interface{}),
 	}
 	return p, nil
 }
@@ -64,7 +67,8 @@ func LoadProfileStore[T NamedProfile](serviceNamespace string, newStore store.Ne
 	}
 
 	p := &ProfileStore{
-		store: store,
+		store:              store,
+		temporaryOverrides: make(map[string]interface{}),
 	}
 	_, err = GetStoredProfile[T](p)
 	if err != nil {
@@ -104,4 +108,95 @@ func (p *ProfileStore) GetProfileName() string {
 
 func getStoreKey(n string) string {
 	return global.STORE_KEY_PROFILE + "-" + n
+}
+
+// SetTemporary sets a temporary field override that won't be persisted to storage
+func (p *ProfileStore) SetTemporary(fieldName string, value interface{}) error {
+	if p.temporaryOverrides == nil {
+		p.temporaryOverrides = make(map[string]interface{})
+	}
+	
+	// Validate that the field exists in the profile struct
+	if err := store.SetFieldValue(p.Profile, fieldName, value); err != nil {
+		return err
+	}
+	
+	// Store the override without persisting
+	p.temporaryOverrides[fieldName] = value
+	return nil
+}
+
+// ClearTemporary removes all temporary field overrides
+func (p *ProfileStore) ClearTemporary() {
+	p.temporaryOverrides = make(map[string]interface{})
+}
+
+// ClearTemporaryField removes a specific temporary field override
+func (p *ProfileStore) ClearTemporaryField(fieldName string) {
+	if p.temporaryOverrides != nil {
+		delete(p.temporaryOverrides, fieldName)
+	}
+}
+
+// GetTemporaryFields returns a copy of all temporary field overrides
+func (p *ProfileStore) GetTemporaryFields() map[string]interface{} {
+	if p.temporaryOverrides == nil {
+		return make(map[string]interface{})
+	}
+	
+	// Return a copy to prevent external modification
+	result := make(map[string]interface{})
+	for k, v := range p.temporaryOverrides {
+		result[k] = v
+	}
+	return result
+}
+
+// HasTemporaryOverrides returns true if there are any temporary overrides
+func (p *ProfileStore) HasTemporaryOverrides() bool {
+	return p.temporaryOverrides != nil && len(p.temporaryOverrides) > 0
+}
+
+// GetProfileWithOverrides returns the profile with temporary overrides applied
+func (p *ProfileStore) GetProfileWithOverrides() (NamedProfile, error) {
+	if !p.HasTemporaryOverrides() {
+		return p.Profile, nil
+	}
+	
+	// Create a copy of the profile structure
+	profileCopy, err := store.CopyProfileStructure(p.Profile)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Set all original field values
+	originalClassification, err := store.ClassifyProfile(p.Profile)
+	if err != nil {
+		return nil, err
+	}
+	
+	allFields := append(originalClassification.SecureFields, originalClassification.PlaintextFields...)
+	allFields = append(allFields, originalClassification.TemporaryFields...)
+	
+	for _, field := range allFields {
+		if err := store.SetFieldValue(&profileCopy, field.Name, field.Value); err != nil {
+			// Skip fields that can't be set
+			continue
+		}
+	}
+	
+	// Apply temporary overrides
+	for fieldName, value := range p.temporaryOverrides {
+		if err := store.SetFieldValue(&profileCopy, fieldName, value); err != nil {
+			// Skip fields that can't be set
+			continue
+		}
+	}
+	
+	// Cast back to NamedProfile
+	if namedProfile, ok := profileCopy.(NamedProfile); ok {
+		return namedProfile, nil
+	}
+	
+	return nil, ErrInvalidProfile
 }

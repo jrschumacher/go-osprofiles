@@ -11,9 +11,10 @@ const (
 	PROFILE_DRIVER_KEYRING   ProfileDriver = "keyring"
 	PROFILE_DRIVER_IN_MEMORY ProfileDriver = "in-memory"
 	PROFILE_DRIVER_FILE      ProfileDriver = "file"
+	PROFILE_DRIVER_HYBRID    ProfileDriver = "hybrid"
 	// Experimental: enables definition of custom storage driver
 	PROFILE_DRIVER_CUSTOM  ProfileDriver = "custom"
-	PROFILE_DRIVER_DEFAULT               = PROFILE_DRIVER_FILE
+	PROFILE_DRIVER_DEFAULT               = PROFILE_DRIVER_HYBRID // Changed to hybrid as new default
 	STORE_KEY_PROFILE                    = "profile"
 	STORE_KEY_GLOBAL                     = "global"
 )
@@ -124,4 +125,9 @@ func (p *GlobalStore) SetDefaultProfile(profileName string) error {
 
 func (p *GlobalStore) GetDefaultProfile() string {
 	return p.config.DefaultProfile
+}
+
+// GetRawData returns the raw JSON data of the global configuration
+func (p *GlobalStore) GetRawData() ([]byte, error) {
+	return p.store.Get()
 }
