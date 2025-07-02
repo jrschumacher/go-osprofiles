@@ -9,23 +9,13 @@ on:
 
 jobs:
   validate:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-        - name: Set up Go
-          uses: actions/setup-go@v4
-          with:
-            go-version: '1.23'
-        - name: Build
-          run: go build ./...
-        - name: Test
-          run: go test ./...
-        - name: Vet
-          run: go vet ./...
-        - name: Format check
-          run: |
-            if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-              echo "The following files need formatting:"
-              gofmt -s -l .
-              exit 1
-            fi
+    name: validate go-actions configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate go-actions usage
+        uses: jrschumacher/go-actions/self-validate@main
+        with:
+          comment-on-pr: true
