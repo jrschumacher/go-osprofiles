@@ -1,0 +1,21 @@
+name: Validate Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/workflows/**/*.yaml'
+
+jobs:
+  validate:
+    name: validate go-actions configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate go-actions usage
+        uses: jrschumacher/go-actions/self-validate@main
+        with:
+          comment-on-pr: true

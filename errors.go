@@ -8,4 +8,5 @@ var (
 	ErrMissingDefaultProfile  = errors.New("error: default profile not set")
 	ErrMissingProfileName     = errors.New("error: profile name not found")
 	ErrInvalidStoreDriver     = errors.New("error: invalid store driver")
+	ErrInvalidProfile         = errors.New("error: invalid profile")
 )

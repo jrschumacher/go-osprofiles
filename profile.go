@@ -58,6 +58,41 @@ func WithCustomStore(newCustomStore store.NewStoreInterface) profileConfigVariad
 	}
 }
 
+// WithHybridStore configures the profiler to use hybrid security storage
+func WithHybridStore(storeDir string, appVersion ...string) profileConfigVariadicFunc {
+	return func(c profileConfig) profileConfig {
+		c.driver = global.PROFILE_DRIVER_HYBRID
+		
+		// Set store directory
+		if storeDir != "" {
+			c.driverOpts = append(c.driverOpts, store.WithStoreDirectory(storeDir))
+		}
+		
+		// Set app version if provided
+		if len(appVersion) > 0 && appVersion[0] != "" {
+			c.driverOpts = append(c.driverOpts, store.WithAppVersion(appVersion[0]))
+		}
+		
+		return c
+	}
+}
+
+// WithSecurityMode configures the security mode for hybrid storage
+func WithSecurityMode(mode store.SecurityMode) profileConfigVariadicFunc {
+	return func(c profileConfig) profileConfig {
+		c.driverOpts = append(c.driverOpts, store.WithSecurityMode(mode))
+		return c
+	}
+}
+
+// WithInsecureWarnings configures warning behavior for insecure fallbacks
+func WithInsecureWarnings(warn bool) profileConfigVariadicFunc {
+	return func(c profileConfig) profileConfig {
+		c.driverOpts = append(c.driverOpts, store.WithWarnOnInsecure(warn))
+		return c
+	}
+}
+
 // newStoreFactory returns a storage interface based on the configured driver
 func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 	switch driver {
@@ -67,6 +102,8 @@ func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 		return store.NewMemoryStore
 	case global.PROFILE_DRIVER_FILE:
 		return store.NewFileStore
+	case global.PROFILE_DRIVER_HYBRID:
+		return store.NewHybridStore
 	case global.PROFILE_DRIVER_CUSTOM:
 		return store.NewCustomStore
 	default:
