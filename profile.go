@@ -2,6 +2,7 @@ package profiles
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jrschumacher/go-osprofiles/internal/global"
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
@@ -10,9 +11,9 @@ import (
 type profileConfig struct {
 	configName string
 	driver     global.ProfileDriver
-
 	driverOpts []store.DriverOpt
 }
+
 
 // Profiler is the main interface for managing profiles
 type Profiler struct {
@@ -20,6 +21,7 @@ type Profiler struct {
 
 	globalStore         *global.GlobalStore
 	currentProfileStore *ProfileStore
+	storeFactory        func(namespace, key string, opts ...store.DriverOpt) (store.StoreInterface, error)
 }
 
 type (
@@ -50,6 +52,7 @@ func WithFileStore(storeDir string) profileConfigVariadicFunc {
 	}
 }
 
+
 func WithCustomStore(newCustomStore store.NewStoreInterface) profileConfigVariadicFunc {
 	return func(c profileConfig) profileConfig {
 		c.driver = global.PROFILE_DRIVER_CUSTOM
@@ -57,6 +60,7 @@ func WithCustomStore(newCustomStore store.NewStoreInterface) profileConfigVariad
 		return c
 	}
 }
+
 
 // newStoreFactory returns a storage interface based on the configured driver
 func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
@@ -74,8 +78,10 @@ func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 	}
 }
 
+
 // New creates a new Profile with the specified configuration options.
 // The configName is required and must be unique to the application.
+// If configName looks like a reverse DNS (contains dots), it will be validated as such.
 func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error) {
 	var err error
 
@@ -88,6 +94,14 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error
 		config = opt(config)
 	}
 
+	// If configName looks like reverse DNS, validate it
+	if containsDot(configName) {
+		if err := validateReverseDNS(configName); err != nil {
+			return nil, fmt.Errorf("invalid reverse DNS format for configName: %w", err)
+		}
+	}
+
+
 	// Validate and initialize the store
 	newStore := newStoreFactory(config.driver)
 	if newStore == nil {
@@ -95,7 +109,8 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error
 	}
 
 	p := &Profiler{
-		config: config,
+		config:       config,
+		storeFactory: newStore,
 	}
 
 	// Load global configuration
@@ -127,7 +142,7 @@ func (p *Profiler) AddProfile(profile NamedProfile, setDefault bool) error {
 	}
 
 	// Create profile store and save
-	p.currentProfileStore, err = NewProfileStore(p.config.configName, newStoreFactory(p.config.driver), profile)
+	p.currentProfileStore, err = NewProfileStore(p.config.configName, p.storeFactory, profile)
 	if err != nil {
 		return err
 	}
@@ -160,7 +175,7 @@ func GetProfile[T NamedProfile](p *Profiler, profileName string) (*ProfileStore,
 	if !p.globalStore.ProfileExists(profileName) {
 		return nil, ErrMissingProfileName
 	}
-	return LoadProfileStore[T](p.config.configName, newStoreFactory(p.config.driver), profileName)
+	return LoadProfileStore[T](p.config.configName, p.storeFactory, profileName)
 }
 
 // ListProfiles returns a list of all profile names
@@ -220,7 +235,7 @@ func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 	}
 
 	// Retrieve the profile
-	profile, err := LoadProfileStore[T](p.config.configName, newStoreFactory(p.config.driver), profileName)
+	profile, err := LoadProfileStore[T](p.config.configName, p.storeFactory, profileName)
 	if err != nil {
 		return err
 	}
@@ -232,3 +247,9 @@ func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 
 	return profile.Delete()
 }
+
+// containsDot checks if a string contains a dot character
+func containsDot(s string) bool {
+	return strings.Contains(s, ".")
+}
+

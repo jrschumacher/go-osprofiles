@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	
+	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
 
 type PlatformWindows struct {
@@ -116,4 +118,24 @@ func (p PlatformWindows) SystemAppConfigDirectory() string {
 		path = filepath.Join(path, p.servicePublisher)
 	}
 	return filepath.Join(path, p.serviceNamespace)
+}
+
+// MDMConfigPath returns empty string as MDM is not supported on Windows.
+func (p PlatformWindows) MDMConfigPath() string {
+	return "" // MDM not supported on Windows
+}
+
+// MDMConfigExists returns false as MDM is not supported on Windows.
+func (p PlatformWindows) MDMConfigExists() bool {
+	return false // MDM not supported on Windows
+}
+
+// SystemAppDataDirectoryWithMDM returns the system directory (no MDM support on Windows)
+func (p PlatformWindows) SystemAppDataDirectoryWithMDM(reverseDNS ...string) (string, []store.DriverOpt) {
+	systemDir := p.SystemAppDataDirectory()
+	opts := []store.DriverOpt{
+		store.WithStoreDirectory(systemDir),
+		// No MDM support on Windows
+	}
+	return systemDir, opts
 }

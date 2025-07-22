@@ -1,5 +1,7 @@
 package platform
 
+import "github.com/jrschumacher/go-osprofiles/pkg/store"
+
 type Platform interface {
 	// Get the username as known to the operating system
 	GetUsername() string
@@ -13,6 +15,12 @@ type Platform interface {
 	SystemAppDataDirectory() string
 	// Get the namespaced system-level config directory for the platform
 	SystemAppConfigDirectory() string
+	// Get the MDM managed preferences path (system-level, highest precedence)
+	MDMConfigPath() string
+	// Check if MDM config exists and is accessible
+	MDMConfigExists() bool
+	// Get system directory with MDM support enabled (for file store integration)
+	SystemAppDataDirectoryWithMDM(reverseDNS ...string) (string, []store.DriverOpt)
 }
 
 // NewPlatform creates a new platform object based on the current operating system

@@ -14,87 +14,182 @@ import (
 
 func Test_ValidateNamespaceKey(t *testing.T) {
 	tests := []struct {
+		name        string
 		ns          string
 		key         string
 		expectedErr error
 	}{
+		// Valid cases
 		{
-			"n ame",
-			"key",
-			ErrValueBadCharacters,
+			name: "valid simple namespace and key",
+			ns:   "myapp",
+			key:  "profile1",
 		},
 		{
-			"name",
-			"k ey",
-			ErrValueBadCharacters,
+			name: "valid namespace and key with underscores and hyphens",
+			ns:   "my-app_v2",
+			key:  "user_profile-1",
 		},
 		{
-			"name!",
-			"key",
-			ErrValueBadCharacters,
+			name: "valid RDNS namespace",
+			ns:   "com.example.app",
+			key:  "profile",
 		},
 		{
-			"name",
-			"key&",
-			ErrValueBadCharacters,
+			name: "valid RDNS key",
+			ns:   "myapp",
+			key:  "com.example.profile",
 		},
 		{
-			"name%",
-			"key",
-			ErrValueBadCharacters,
+			name: "valid both RDNS namespace and key",
+			ns:   "com.company.app",
+			key:  "com.user.profile",
 		},
 		{
-			"name:",
-			"key",
-			ErrValueBadCharacters,
+			name: "valid complex RDNS",
+			ns:   "org.example.sub-domain.app-name",
+			key:  "user.profile.config-v2",
 		},
 		{
-			"name|",
-			"key",
-			ErrValueBadCharacters,
+			name: "valid single character",
+			ns:   "a",
+			key:  "b",
+		},
+
+		// Invalid characters in namespace
+		{
+			name:        "namespace with space",
+			ns:          "n ame",
+			key:         "key",
+			expectedErr: ErrValueBadCharacters,
 		},
 		{
-			"name/",
-			"key",
-			ErrValueBadCharacters,
+			name:        "namespace with exclamation",
+			ns:          "name!",
+			key:         "key",
+			expectedErr: ErrValueBadCharacters,
 		},
 		{
-			"name\\",
-			"key",
-			ErrValueBadCharacters,
+			name:        "namespace with percent",
+			ns:          "name%",
+			key:         "key",
+			expectedErr: ErrValueBadCharacters,
 		},
 		{
-			"name",
-			"key@",
-			ErrValueBadCharacters,
+			name:        "namespace with colon",
+			ns:          "name:",
+			key:         "key",
+			expectedErr: ErrValueBadCharacters,
 		},
 		{
-			"",
-			"key",
-			ErrNamespaceInvalid,
+			name:        "namespace with pipe",
+			ns:          "name|",
+			key:         "key",
+			expectedErr: ErrValueBadCharacters,
 		},
 		{
-			"name",
-			"",
-			ErrKeyInvalid,
+			name:        "namespace with forward slash",
+			ns:          "name/",
+			key:         "key",
+			expectedErr: ErrValueBadCharacters,
 		},
 		{
-			strings.Repeat("a", maxFileNameLength+1),
-			"key",
-			ErrLengthExceeded,
+			name:        "namespace with backslash",
+			ns:          "name\\",
+			key:         "key",
+			expectedErr: ErrValueBadCharacters,
 		},
 		{
-			"name",
-			strings.Repeat("b", maxFileNameLength+1),
-			ErrLengthExceeded,
+			name:        "namespace starting with period",
+			ns:          ".hidden",
+			key:         "key",
+			expectedErr: ErrValueBadCharacters,
+		},
+		{
+			name:        "namespace ending with period",
+			ns:          "name.",
+			key:         "key",
+			expectedErr: ErrValueBadCharacters,
+		},
+
+		// Invalid characters in key
+		{
+			name:        "key with space",
+			ns:          "name",
+			key:         "k ey",
+			expectedErr: ErrValueBadCharacters,
+		},
+		{
+			name:        "key with ampersand",
+			ns:          "name",
+			key:         "key&",
+			expectedErr: ErrValueBadCharacters,
+		},
+		{
+			name:        "key with at symbol",
+			ns:          "name",
+			key:         "key@",
+			expectedErr: ErrValueBadCharacters,
+		},
+		{
+			name:        "key starting with period",
+			ns:          "name",
+			key:         ".hidden",
+			expectedErr: ErrValueBadCharacters,
+		},
+		{
+			name:        "key ending with period",
+			ns:          "name",
+			key:         "key.",
+			expectedErr: ErrValueBadCharacters,
+		},
+
+		// Empty values
+		{
+			name:        "empty namespace",
+			ns:          "",
+			key:         "key",
+			expectedErr: ErrNamespaceInvalid,
+		},
+		{
+			name:        "empty key",
+			ns:          "name",
+			key:         "",
+			expectedErr: ErrKeyInvalid,
+		},
+
+		// Length exceeded
+		{
+			name:        "namespace too long",
+			ns:          strings.Repeat("a", maxFileNameLength+1),
+			key:         "key",
+			expectedErr: ErrLengthExceeded,
+		},
+		{
+			name:        "key too long",
+			ns:          "name",
+			key:         strings.Repeat("b", maxFileNameLength+1),
+			expectedErr: ErrLengthExceeded,
+		},
+		{
+			name:        "combined namespace and key too long",
+			ns:          strings.Repeat("a", 200),
+			key:         strings.Repeat("b", 200),
+			expectedErr: ErrLengthExceeded,
 		},
 	}
 
 	for _, test := range tests {
-		err := ValidateNamespaceKey(test.ns, test.key)
-		if !errors.Is(err, test.expectedErr) {
-			t.Errorf("expected error %v, got %v", test.expectedErr, err)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			err := ValidateNamespaceKey(test.ns, test.key)
+			if test.expectedErr == nil {
+				assert.NoError(t, err, "expected no error for valid input")
+			} else {
+				assert.Error(t, err, "expected error for invalid input")
+				assert.True(t, errors.Is(err, test.expectedErr), 
+					"expected error %v, got %v", test.expectedErr, err)
+			}
+		})
 	}
 }
 

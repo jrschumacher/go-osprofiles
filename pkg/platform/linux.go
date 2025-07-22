@@ -4,6 +4,8 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	
+	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
 
 type PlatformLinux struct {
@@ -79,4 +81,24 @@ func (p PlatformLinux) SystemAppConfigDirectory() string {
 		path = filepath.Join(path, p.servicePublisher)
 	}
 	return filepath.Join(path, p.serviceNamespace)
+}
+
+// MDMConfigPath returns empty string as MDM is not supported on Linux.
+func (p PlatformLinux) MDMConfigPath() string {
+	return "" // MDM not supported on Linux
+}
+
+// MDMConfigExists returns false as MDM is not supported on Linux.
+func (p PlatformLinux) MDMConfigExists() bool {
+	return false // MDM not supported on Linux
+}
+
+// SystemAppDataDirectoryWithMDM returns the system directory (no MDM support on Linux)
+func (p PlatformLinux) SystemAppDataDirectoryWithMDM(reverseDNS ...string) (string, []store.DriverOpt) {
+	systemDir := p.SystemAppDataDirectory()
+	opts := []store.DriverOpt{
+		store.WithStoreDirectory(systemDir),
+		// No MDM support on Linux
+	}
+	return systemDir, opts
 }
