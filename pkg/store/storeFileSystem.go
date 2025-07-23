@@ -10,20 +10,29 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
 	"github.com/zalando/go-keyring"
 )
 
+// MDMPlatform interface for platform-specific MDM operations
+type MDMPlatform interface {
+	MDMConfigExists() bool
+	GetMDMDataAsJSON(expandJSONStrings bool) ([]byte, error)
+}
+
+
+
 type fileStore struct {
-	namespaceVersionURN string
-	namespace           string
-	key                 string
-	filePath            string
-	mdmEnabled          bool
-	mdmIdentifier       string
+	namespaceVersionURN    string
+	namespace              string
+	key                    string
+	filePath               string
+	mdmEnabled             bool
+	mdmIdentifier          string
+	mdmExpandJSONStrings   bool
+	mdmPlatform            MDMPlatform // Interface for platform-specific MDM operations
 }
 
 // Metadata structure for unencrypted metadata about the encrypted file
@@ -45,6 +54,8 @@ const (
 var storeDirectory string
 var enableMDMCheck bool
 var mdmIdentifier string
+var expandMDMJSONStrings bool
+var mdmPlatform MDMPlatform
 
 // Assigns the store directory for the fileStore driver
 func WithStoreDirectory(storeDir string) DriverOpt {
@@ -54,14 +65,29 @@ func WithStoreDirectory(storeDir string) DriverOpt {
 	}
 }
 
-// Enables MDM managed preferences checking with specified reverse DNS identifier
-func WithMDMSupport(reverseDNS string) DriverOpt {
+// Enables MDM managed preferences checking with specified reverse DNS identifier and platform
+func WithMDMSupport(reverseDNS string, platform ...MDMPlatform) DriverOpt {
 	return func() error {
 		enableMDMCheck = true
 		mdmIdentifier = reverseDNS
+		expandMDMJSONStrings = true // Default to expanding JSON strings
+		
+		// Set platform if provided
+		if len(platform) > 0 {
+			mdmPlatform = platform[0]
+		}
 		return nil
 	}
 }
+
+// Controls whether JSON strings in MDM plists should be automatically expanded
+func WithMDMJSONExpansion(expand bool) DriverOpt {
+	return func() error {
+		expandMDMJSONStrings = expand
+		return nil
+	}
+}
+
 
 // TODO: should we use this throughout all stores and add it to the interface?
 // URN-based namespace template without UUID, using only profile name for uniqueness
@@ -115,17 +141,21 @@ var NewFileStore NewStoreInterface = func(serviceNamespace, key string, driverOp
 	filePath := filepath.Join(baseDir, fileName+".enc")
 
 	store := &fileStore{
-		namespaceVersionURN: urn,
-		namespace:           serviceNamespace,
-		key:                 key,
-		filePath:            filePath,
-		mdmEnabled:          enableMDMCheck,
-		mdmIdentifier:       mdmIdentifier,
+		namespaceVersionURN:    urn,
+		namespace:              serviceNamespace,
+		key:                    key,
+		filePath:               filePath,
+		mdmEnabled:             enableMDMCheck,
+		mdmIdentifier:          mdmIdentifier,
+		mdmExpandJSONStrings:   expandMDMJSONStrings,
+		mdmPlatform:            mdmPlatform,
 	}
 	
 	// Reset global flags for next usage
 	enableMDMCheck = false
 	mdmIdentifier = ""
+	expandMDMJSONStrings = false
+	mdmPlatform = nil
 
 	return store, nil
 }
@@ -133,7 +163,7 @@ var NewFileStore NewStoreInterface = func(serviceNamespace, key string, driverOp
 // Exists checks if the encrypted file exists (checks MDM first if enabled)
 func (f *fileStore) Exists() bool {
 	// Check MDM first if enabled (highest precedence)
-	if f.mdmEnabled && f.mdmExists() {
+	if f.mdmEnabled && f.mdmPlatform != nil && f.mdmPlatform.MDMConfigExists() {
 		return true
 	}
 	
@@ -145,8 +175,9 @@ func (f *fileStore) Exists() bool {
 // Get retrieves and decrypts data from the file (checks MDM first if enabled)
 func (f *fileStore) Get() ([]byte, error) {
 	// Check MDM first if enabled (highest precedence, read-only)
-	if f.mdmEnabled && f.mdmExists() {
-		return f.getMDMData()
+	if f.mdmEnabled && f.mdmPlatform != nil && f.mdmPlatform.MDMConfigExists() {
+		// Use platform's MDM data retrieval with JSON expansion
+		return f.mdmPlatform.GetMDMDataAsJSON(f.mdmExpandJSONStrings)
 	}
 	
 	// Fall back to regular file store
@@ -293,56 +324,11 @@ func (f *fileStore) LoadMetadata() (*fileMetadata, error) {
 	return &metadata, nil
 }
 
-// mdmExists checks if MDM managed preferences file exists and is readable
-func (f *fileStore) mdmExists() bool {
-	if f.mdmIdentifier == "" {
-		return false
-	}
-	
-	// Only check MDM on Darwin (macOS)
-	if runtime.GOOS != "darwin" {
-		return false
-	}
-	
-	mdmPath := filepath.Join("/", "Library", "Managed Preferences", f.mdmIdentifier+".plist")
-	
-	// Check if file exists and is readable
-	if _, err := os.Stat(mdmPath); os.IsNotExist(err) {
-		return false
-	}
-	
-	// Try to open file to verify readability
-	file, err := os.Open(mdmPath)
-	if err != nil {
-		return false
-	}
-	file.Close()
-	return true
-}
-
-// getMDMData reads data from MDM managed preferences plist
-func (f *fileStore) getMDMData() ([]byte, error) {
-	if f.mdmIdentifier == "" {
-		return nil, fmt.Errorf("MDM identifier not set")
-	}
-	
-	mdmPath := filepath.Join("/", "Library", "Managed Preferences", f.mdmIdentifier+".plist")
-	
-	// Read the plist file
-	// Note: In a real implementation, you'd use a proper plist parser
-	// For now, we'll assume the plist contains JSON-compatible data
-	data, err := os.ReadFile(mdmPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read MDM plist: %w", err)
-	}
-	
-	return data, nil
-}
 
 // wrapWriteError wraps OS write errors with meaningful context for downstream apps
 func (f *fileStore) wrapWriteError(err error, operation string) error {
 	// Check if this is likely an MDM-managed location (macOS)
-	if f.mdmEnabled && f.mdmExists() {
+	if f.mdmEnabled && f.mdmPlatform != nil && f.mdmPlatform.MDMConfigExists() {
 		return fmt.Errorf("cannot %s: %w", operation, fmt.Errorf("configuration is managed remotely (MDM) and cannot be modified"))
 	}
 	

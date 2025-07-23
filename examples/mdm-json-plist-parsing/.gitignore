@@ -1,0 +1,5 @@
+# Compiled binaries
+mdm-json-plist-parsing
+mdm-json-plist-parsing.exe
+*.exe
+*.bin

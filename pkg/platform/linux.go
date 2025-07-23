@@ -1,12 +1,13 @@
 package platform
 
 import (
+	"fmt"
 	"os"
 	"os/user"
-	"path/filepath"
 	
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
+
 
 type PlatformLinux struct {
 	username         string
@@ -43,44 +44,36 @@ func (p PlatformLinux) UserHomeDir() string {
 // ~/.local/share/<servicePublisher>/<serviceNamespace>
 // ~/.local/share/<serviceNamespace> (if no publisher)
 func (p PlatformLinux) UserAppDataDirectory() string {
-	path := filepath.Join(p.userHomeDir, ".local", "share")
-	if p.servicePublisher != "" {
-		path = filepath.Join(path, p.servicePublisher)
-	}
-	return filepath.Join(path, p.serviceNamespace)
+	return buildLinuxUserDataPath(p.userHomeDir, p.servicePublisher, p.serviceNamespace)
 }
 
 // UserAppConfigDirectory returns the config directory for Linux.
 // ~/.config/<servicePublisher>/<serviceNamespace>
 // ~/.config/<serviceNamespace>
 func (p PlatformLinux) UserAppConfigDirectory() string {
-	path := filepath.Join(p.userHomeDir, ".config")
-	if p.servicePublisher != "" {
-		path = filepath.Join(path, p.servicePublisher)
-	}
-	return filepath.Join(path, p.serviceNamespace)
+	return buildLinuxUserConfigPath(p.userHomeDir, p.servicePublisher, p.serviceNamespace)
 }
 
 // SystemAppDataDirectory returns the system-level data directory for Linux.
 // /usr/local/<servicePublisher>/<serviceNamespace>
 // /usr/local/<serviceNamespace> (if no publisher)
+// Uses OSPROFILES_TEST_BASE_PATH environment variable as base if set (for testing)
 func (p PlatformLinux) SystemAppDataDirectory() string {
-	path := filepath.Join("/", "usr", "local")
 	if p.servicePublisher != "" {
-		path = filepath.Join(path, p.servicePublisher)
+		return buildLinuxSystemPath(linuxUsrLocalPath, p.servicePublisher, p.serviceNamespace)
 	}
-	return filepath.Join(path, p.serviceNamespace)
+	return buildLinuxSystemPath(linuxUsrLocalPath, p.serviceNamespace)
 }
 
 // SystemAppConfigDirectory returns the system-level config directory for Linux.
 // /etc/<servicePublisher>/<serviceNamespace>
 // /etc/<serviceNamespace> (if no publisher)
+// Uses OSPROFILES_TEST_BASE_PATH environment variable as base if set (for testing)
 func (p PlatformLinux) SystemAppConfigDirectory() string {
-	path := filepath.Join("/", "etc")
 	if p.servicePublisher != "" {
-		path = filepath.Join(path, p.servicePublisher)
+		return buildLinuxSystemPath(linuxEtcPath, p.servicePublisher, p.serviceNamespace)
 	}
-	return filepath.Join(path, p.serviceNamespace)
+	return buildLinuxSystemPath(linuxEtcPath, p.serviceNamespace)
 }
 
 // MDMConfigPath returns empty string as MDM is not supported on Linux.
@@ -91,6 +84,16 @@ func (p PlatformLinux) MDMConfigPath() string {
 // MDMConfigExists returns false as MDM is not supported on Linux.
 func (p PlatformLinux) MDMConfigExists() bool {
 	return false // MDM not supported on Linux
+}
+
+// GetMDMData returns error as MDM is not supported on Linux
+func (p PlatformLinux) GetMDMData() ([]byte, error) {
+	return nil, fmt.Errorf("MDM is not supported on Linux")
+}
+
+// GetMDMDataAsJSON returns error as MDM is not supported on Linux
+func (p PlatformLinux) GetMDMDataAsJSON(expandJSONStrings bool) ([]byte, error) {
+	return nil, fmt.Errorf("MDM is not supported on Linux")
 }
 
 // SystemAppDataDirectoryWithMDM returns the system directory (no MDM support on Linux)

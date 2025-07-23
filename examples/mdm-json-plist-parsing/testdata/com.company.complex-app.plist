@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>database_config</key>
+	<string>{"host":"prod-db.company.com","port":5432,"ssl":true,"pool_size":20}</string>
+	<key>api_endpoints</key>
+	<string>{"auth":"https://auth.company.com/v1","data":"https://api.company.com/v2","monitoring":"https://metrics.company.com"}</string>
+	<key>feature_flags</key>
+	<string>{"advanced_analytics":true,"beta_features":false,"debug_mode":false,"telemetry":true}</string>
+	<key>compliance_settings</key>
+	<string>{"data_retention_days":90,"audit_logging":true,"encryption_required":true,"allowed_domains":["company.com","partner.org"]}</string>
+	<key>simple_config</key>
+	<dict>
+		<key>app_name</key>
+		<string>Complex Enterprise App</string>
+		<key>version</key>
+		<string>2.1.0</string>
+		<key>log_level</key>
+		<string>INFO</string>
+	</dict>
+</dict>
+</plist>

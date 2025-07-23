@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<string>{"name":"JSON Root App","database_host":"prod-db.company.com","database_port":5432,"api_endpoint":"https://api.company.com/v2","log_level":"INFO","enabled_features":["authentication","logging","monitoring","compliance"],"security_config":{"encryption_enabled":true,"tls_version":"1.3","certificate_validation":true,"allowed_ciphers":["AES256-GCM-SHA384","CHACHA20-POLY1305-SHA256"]},"performance_settings":{"max_connections":100,"timeout_seconds":30,"retry_attempts":3,"cache_size_mb":256}}</string>
+</plist>

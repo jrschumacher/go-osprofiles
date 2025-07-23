@@ -19,6 +19,10 @@ type Platform interface {
 	MDMConfigPath() string
 	// Check if MDM config exists and is accessible
 	MDMConfigExists() bool
+	// Read raw MDM data from managed preferences plist
+	GetMDMData() ([]byte, error)
+	// Read MDM data with intelligent JSON string handling
+	GetMDMDataAsJSON(expandJSONStrings bool) ([]byte, error)
 	// Get system directory with MDM support enabled (for file store integration)
 	SystemAppDataDirectoryWithMDM(reverseDNS ...string) (string, []store.DriverOpt)
 }

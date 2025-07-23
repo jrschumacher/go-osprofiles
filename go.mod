@@ -3,6 +3,7 @@ module github.com/jrschumacher/go-osprofiles
 go 1.23.4
 
 require (
+	github.com/micromdm/plist v0.2.1
 	github.com/stretchr/testify v1.10.0
 	github.com/zalando/go-keyring v0.2.6
 )
@@ -15,5 +16,4 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	howett.net/plist v1.0.1 // indirect
 )
