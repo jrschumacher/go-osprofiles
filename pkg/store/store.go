@@ -27,7 +27,7 @@ type StoreInterface interface {
 	// Get retrieves the entry bytes from the store.
 	Get() ([]byte, error)
 	// Set marshals the provided value into JSON and stores it.
-	Set(value interface{}) error
+	Set(value any) error
 	// Delete removes the entry from the store.
 	Delete() error
 }
@@ -39,8 +39,8 @@ const maxFileNameLength = 255
 
 // ValidateNamespaceKey ensures the namespace and key are valid and within length bounds.
 func ValidateNamespaceKey(serviceNamespace, key string) error {
-	// Regular expression for allowed characters (alphanumerics, underscore, hyphen)
-	validName := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	// Regular expression for allowed characters (alphanumerics, underscore, hyphen, period not at start/end)
+	validName := regexp.MustCompile(`^[a-zA-Z0-9_-]([a-zA-Z0-9_.-]*[a-zA-Z0-9_-])?$`)
 
 	if len(serviceNamespace) == 0 {
 		return errors.Join(ErrNamespaceInvalid, ErrValueEmpty)

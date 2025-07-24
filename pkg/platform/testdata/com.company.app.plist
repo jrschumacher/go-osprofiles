@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AppConfig</key>
+	<dict>
+		<key>DatabaseHost</key>
+		<string>prod-db.company.com</string>
+		<key>DatabasePort</key>
+		<integer>5432</integer>
+		<key>EnableLogging</key>
+		<true/>
+		<key>LogLevel</key>
+		<string>INFO</string>
+		<key>Features</key>
+		<array>
+			<string>featureA</string>
+			<string>featureB</string>
+		</array>
+	</dict>
+	<key>SecuritySettings</key>
+	<dict>
+		<key>RequireSSL</key>
+		<true/>
+		<key>CertificateValidation</key>
+		<string>strict</string>
+	</dict>
+</dict>
+</plist>

@@ -16,11 +16,23 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
+// MDMPlatform interface for platform-specific MDM operations
+type MDMPlatform interface {
+	MDMConfigExists() bool
+	GetMDMDataAsJSON(expandJSONStrings bool) ([]byte, error)
+}
+
+
+
 type fileStore struct {
-	namespaceVersionURN string
-	namespace           string
-	key                 string
-	filePath            string
+	namespaceVersionURN    string
+	namespace              string
+	key                    string
+	filePath               string
+	mdmEnabled             bool
+	mdmIdentifier          string
+	mdmExpandJSONStrings   bool
+	mdmPlatform            MDMPlatform // Interface for platform-specific MDM operations
 }
 
 // Metadata structure for unencrypted metadata about the encrypted file
@@ -40,6 +52,10 @@ const (
 
 // Directory where profiles are stored when using the fileStore driver
 var storeDirectory string
+var enableMDMCheck bool
+var mdmIdentifier string
+var expandMDMJSONStrings bool
+var mdmPlatform MDMPlatform
 
 // Assigns the store directory for the fileStore driver
 func WithStoreDirectory(storeDir string) DriverOpt {
@@ -48,6 +64,30 @@ func WithStoreDirectory(storeDir string) DriverOpt {
 		return nil
 	}
 }
+
+// Enables MDM managed preferences checking with specified reverse DNS identifier and platform
+func WithMDMSupport(reverseDNS string, platform ...MDMPlatform) DriverOpt {
+	return func() error {
+		enableMDMCheck = true
+		mdmIdentifier = reverseDNS
+		expandMDMJSONStrings = true // Default to expanding JSON strings
+		
+		// Set platform if provided
+		if len(platform) > 0 {
+			mdmPlatform = platform[0]
+		}
+		return nil
+	}
+}
+
+// Controls whether JSON strings in MDM plists should be automatically expanded
+func WithMDMJSONExpansion(expand bool) DriverOpt {
+	return func() error {
+		expandMDMJSONStrings = expand
+		return nil
+	}
+}
+
 
 // TODO: should we use this throughout all stores and add it to the interface?
 // URN-based namespace template without UUID, using only profile name for uniqueness
@@ -99,22 +139,48 @@ var NewFileStore NewStoreInterface = func(serviceNamespace, key string, driverOp
 	urn := BuildNamespaceURN(serviceNamespace, version1)
 	fileName := fmt.Sprintf("%s.%s", urn, key)
 	filePath := filepath.Join(baseDir, fileName+".enc")
-	return &fileStore{
-		namespaceVersionURN: urn,
-		namespace:           serviceNamespace,
-		key:                 key,
-		filePath:            filePath,
-	}, nil
+
+	store := &fileStore{
+		namespaceVersionURN:    urn,
+		namespace:              serviceNamespace,
+		key:                    key,
+		filePath:               filePath,
+		mdmEnabled:             enableMDMCheck,
+		mdmIdentifier:          mdmIdentifier,
+		mdmExpandJSONStrings:   expandMDMJSONStrings,
+		mdmPlatform:            mdmPlatform,
+	}
+	
+	// Reset global flags for next usage
+	enableMDMCheck = false
+	mdmIdentifier = ""
+	expandMDMJSONStrings = false
+	mdmPlatform = nil
+
+	return store, nil
 }
 
-// Exists checks if the encrypted file exists
+// Exists checks if the encrypted file exists (checks MDM first if enabled)
 func (f *fileStore) Exists() bool {
+	// Check MDM first if enabled (highest precedence)
+	if f.mdmEnabled && f.mdmPlatform != nil && f.mdmPlatform.MDMConfigExists() {
+		return true
+	}
+	
+	// Check regular file store
 	_, err := os.Stat(f.filePath)
 	return err == nil
 }
 
-// Get retrieves and decrypts data from the file
+// Get retrieves and decrypts data from the file (checks MDM first if enabled)
 func (f *fileStore) Get() ([]byte, error) {
+	// Check MDM first if enabled (highest precedence, read-only)
+	if f.mdmEnabled && f.mdmPlatform != nil && f.mdmPlatform.MDMConfigExists() {
+		// Use platform's MDM data retrieval with JSON expansion
+		return f.mdmPlatform.GetMDMDataAsJSON(f.mdmExpandJSONStrings)
+	}
+	
+	// Fall back to regular file store
 	key, err := f.getEncryptionKey()
 	if err != nil {
 		return nil, err
@@ -127,7 +193,7 @@ func (f *fileStore) Get() ([]byte, error) {
 }
 
 // Set encrypts and saves data to the file, also saving metadata
-func (f *fileStore) Set(value interface{}) error {
+func (f *fileStore) Set(value any) error {
 	key, err := f.getEncryptionKey()
 	if err != nil {
 		return err
@@ -142,7 +208,7 @@ func (f *fileStore) Set(value interface{}) error {
 	}
 	// Write the encrypted profile file with proper permissions
 	if err := os.WriteFile(f.filePath, encryptedData, ownerPermissionsRW); err != nil {
-		return fmt.Errorf("failed to write encrypted profile to %s: %w", f.filePath, err)
+		return f.wrapWriteError(err, "profile")
 	}
 	// Save metadata as well
 	profileName := f.key // or extract from value if it's part of a ProfileConfig struct
@@ -152,11 +218,14 @@ func (f *fileStore) Set(value interface{}) error {
 // Delete removes the encrypted file and metadata file from disk
 func (f *fileStore) Delete() error {
 	if err := os.Remove(f.filePath); err != nil {
-		return err
+		return f.wrapWriteError(err, "profile")
 	}
 	// Remove the extension from filePath and add .nfo for the metadata file
 	metadataFilePath := strings.TrimSuffix(f.filePath, filepath.Ext(f.filePath)) + ".nfo"
-	return os.Remove(metadataFilePath)
+	if err := os.Remove(metadataFilePath); err != nil {
+		return f.wrapWriteError(err, "delete metadata")
+	}
+	return nil
 }
 
 // getEncryptionKey retrieves the encryption key from the keyring or generates it if absent
@@ -235,7 +304,10 @@ func (f *fileStore) SaveMetadata(profileName string) error {
 		return err
 	}
 	metadataFilePath := strings.TrimSuffix(f.filePath, filepath.Ext(f.filePath)) + ".nfo"
-	return os.WriteFile(metadataFilePath, data, ownerPermissionsRW)
+	if err := os.WriteFile(metadataFilePath, data, ownerPermissionsRW); err != nil {
+		return f.wrapWriteError(err, "save metadata")
+	}
+	return nil
 }
 
 // LoadMetadata loads and parses metadata from a .nfo file
@@ -250,4 +322,25 @@ func (f *fileStore) LoadMetadata() (*fileMetadata, error) {
 		return nil, err
 	}
 	return &metadata, nil
+}
+
+
+// wrapWriteError wraps OS write errors with meaningful context for downstream apps
+func (f *fileStore) wrapWriteError(err error, operation string) error {
+	// Check if this is likely an MDM-managed location (macOS)
+	if f.mdmEnabled && f.mdmPlatform != nil && f.mdmPlatform.MDMConfigExists() {
+		return fmt.Errorf("cannot %s: %w", operation, fmt.Errorf("configuration is managed remotely (MDM) and cannot be modified"))
+	}
+	
+	// Check for common permission errors that indicate read-only locations
+	errStr := err.Error()
+	if strings.Contains(errStr, "permission denied") || 
+	   strings.Contains(errStr, "access is denied") ||
+	   strings.Contains(errStr, "operation not permitted") ||
+	   strings.Contains(errStr, "read-only") {
+		return fmt.Errorf("cannot %s: %w", operation, fmt.Errorf("configuration location is read-only: %w", err))
+	}
+	
+	// For other write errors, provide generic context
+	return fmt.Errorf("failed to %s to %s: %w", operation, f.filePath, err)
 }

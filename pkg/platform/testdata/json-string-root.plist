@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<string>{"appConfig":{"environment":"production","features":["auth","logging","monitoring"],"database":{"host":"db.company.com","port":5432,"ssl":true}},"version":"2.1.0"}</string>
+</plist>

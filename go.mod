@@ -3,6 +3,7 @@ module github.com/jrschumacher/go-osprofiles
 go 1.23.4
 
 require (
+	github.com/micromdm/plist v0.2.1
 	github.com/stretchr/testify v1.10.0
 	github.com/zalando/go-keyring v0.2.6
 )

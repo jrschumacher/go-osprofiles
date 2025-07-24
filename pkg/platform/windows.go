@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/user"
-	"path/filepath"
+	
+	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
 
 type PlatformWindows struct {
@@ -78,42 +79,64 @@ func (p PlatformWindows) UserHomeDir() string {
 // %LocalAppData%\<servicePublisher>\<serviceNamespace>
 // %LocalAppData%\<serviceNamespace> (if no publisher)
 func (p PlatformWindows) UserAppDataDirectory() string {
-	path := p.localAppData
-	if p.servicePublisher != "" {
-		path = filepath.Join(path, p.servicePublisher)
-	}
-	return filepath.Join(path, p.serviceNamespace)
+	return buildWindowsUserPath(p.localAppData, p.servicePublisher, p.serviceNamespace)
 }
 
 // UserAppConfigDirectory returns the namespaced user-level config directory for Windows.
 // %LocalAppData%\<servicePublisher>\<serviceNamespace>
 // %LocalAppData%\<serviceNamespace> (if no publisher)
 func (p PlatformWindows) UserAppConfigDirectory() string {
-	path := p.localAppData
-	if p.servicePublisher != "" {
-		path = filepath.Join(path, p.servicePublisher)
-	}
-	return filepath.Join(path, p.serviceNamespace)
+	return buildWindowsUserPath(p.localAppData, p.servicePublisher, p.serviceNamespace)
 }
 
 // SystemAppDataDirectory returns the namespaced system-level data directory for Windows.
 // %ProgramData%\<servicePublisher>\<serviceNamespace>
 // %ProgramData%\<serviceNamespace> (if no publisher)
+// Uses OSPROFILES_TEST_BASE_PATH environment variable as base if set (for testing)
 func (p PlatformWindows) SystemAppDataDirectory() string {
-	path := p.programData
 	if p.servicePublisher != "" {
-		path = filepath.Join(path, p.servicePublisher)
+		return buildWindowsSystemPath(p.programData, windowsProgramDataPath, p.servicePublisher, p.serviceNamespace)
 	}
-	return filepath.Join(path, p.serviceNamespace)
+	return buildWindowsSystemPath(p.programData, windowsProgramDataPath, p.serviceNamespace)
 }
 
 // SystemAppConfigDirectory returns the namespaced system-level config directory for Windows.
 // %ProgramFiles%\<servicePublisher>\<serviceNamespace>
-// %ProgramFiles%\<serviceNamespace> (if no publisher)
+// %ProgramFiles%\<serviceNamespace> (if no publisher)  
+// Uses OSPROFILES_TEST_BASE_PATH environment variable as base if set (for testing)
 func (p PlatformWindows) SystemAppConfigDirectory() string {
-	path := p.programFiles
 	if p.servicePublisher != "" {
-		path = filepath.Join(path, p.servicePublisher)
+		return buildWindowsSystemPath(p.programFiles, windowsProgramFilesPath, p.servicePublisher, p.serviceNamespace)
 	}
-	return filepath.Join(path, p.serviceNamespace)
+	return buildWindowsSystemPath(p.programFiles, windowsProgramFilesPath, p.serviceNamespace)
+}
+
+// MDMConfigPath returns empty string as MDM is not supported on Windows.
+func (p PlatformWindows) MDMConfigPath() string {
+	return "" // MDM not supported on Windows
+}
+
+// MDMConfigExists returns false as MDM is not supported on Windows.
+func (p PlatformWindows) MDMConfigExists() bool {
+	return false // MDM not supported on Windows
+}
+
+// GetMDMData returns error as MDM is not supported on Windows
+func (p PlatformWindows) GetMDMData() ([]byte, error) {
+	return nil, fmt.Errorf("MDM is not supported on Windows")
+}
+
+// GetMDMDataAsJSON returns error as MDM is not supported on Windows
+func (p PlatformWindows) GetMDMDataAsJSON(expandJSONStrings bool) ([]byte, error) {
+	return nil, fmt.Errorf("MDM is not supported on Windows")
+}
+
+// SystemAppDataDirectoryWithMDM returns the system directory (no MDM support on Windows)
+func (p PlatformWindows) SystemAppDataDirectoryWithMDM(reverseDNS ...string) (string, []store.DriverOpt) {
+	systemDir := p.SystemAppDataDirectory()
+	opts := []store.DriverOpt{
+		store.WithStoreDirectory(systemDir),
+		// No MDM support on Windows
+	}
+	return systemDir, opts
 }

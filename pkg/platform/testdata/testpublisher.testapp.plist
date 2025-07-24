@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>TestConfiguration</key>
+	<dict>
+		<key>Environment</key>
+		<string>production</string>
+		<key>MaxConnections</key>
+		<integer>100</integer>
+		<key>EnableDebug</key>
+		<false/>
+	</dict>
+	<key>Policies</key>
+	<array>
+		<string>policy1</string>
+		<string>policy2</string>
+	</array>
+</dict>
+</plist>
