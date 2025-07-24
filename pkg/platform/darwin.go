@@ -230,6 +230,11 @@ func (p PlatformDarwin) GetMDMDataAsJSON(expandJSONStrings bool) ([]byte, error)
 	return rawData, nil
 }
 
+const (
+	// maxJSONExpansionDepth limits recursive JSON expansion to prevent stack overflow
+	maxJSONExpansionDepth = 10
+)
+
 // expandJSONStrings recursively finds string values that are valid JSON and expands them
 func (p PlatformDarwin) expandJSONStrings(data []byte) ([]byte, error) {
 	var obj any
@@ -237,24 +242,30 @@ func (p PlatformDarwin) expandJSONStrings(data []byte) ([]byte, error) {
 		return data, nil // Return as-is if we can't parse
 	}
 
-	expanded := p.expandJSONStringsRecursive(obj)
+	expanded := p.expandJSONStringsRecursive(obj, 0)
 	return json.Marshal(expanded)
 }
 
 // expandJSONStringsRecursive recursively processes data structures to expand JSON strings
-func (p PlatformDarwin) expandJSONStringsRecursive(obj any) any {
+// with depth limiting to prevent stack overflow
+func (p PlatformDarwin) expandJSONStringsRecursive(obj any, depth int) any {
+	// Prevent infinite recursion by limiting depth
+	if depth >= maxJSONExpansionDepth {
+		return obj
+	}
+
 	switch v := obj.(type) {
 	case map[string]any:
 		result := make(map[string]any)
 		for key, value := range v {
-			result[key] = p.expandJSONStringsRecursive(value)
+			result[key] = p.expandJSONStringsRecursive(value, depth+1)
 		}
 		return result
 		
 	case []any:
 		result := make([]any, len(v))
 		for i, item := range v {
-			result[i] = p.expandJSONStringsRecursive(item)
+			result[i] = p.expandJSONStringsRecursive(item, depth+1)
 		}
 		return result
 		
@@ -263,7 +274,7 @@ func (p PlatformDarwin) expandJSONStringsRecursive(obj any) any {
 		var jsonObj any
 		if err := json.Unmarshal([]byte(v), &jsonObj); err == nil {
 			// It's valid JSON! Return the parsed object instead of the string
-			return p.expandJSONStringsRecursive(jsonObj)
+			return p.expandJSONStringsRecursive(jsonObj, depth+1)
 		}
 		// Not valid JSON, return the string as-is
 		return v
