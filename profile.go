@@ -218,7 +218,6 @@ func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 	if !p.globalStore.ProfileExists(profileName) {
 		return ErrMissingProfileName
 	}
-
 	// Retrieve the profile
 	profile, err := LoadProfileStore[T](p.config.configName, newStoreFactory(p.config.driver), profileName)
 	if err != nil {
@@ -231,4 +230,45 @@ func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 	}
 
 	return profile.Delete()
+}
+
+// Cleanup deletes all profiles for the Profiler and removes the global store from the underlying store.
+func (p *Profiler) Cleanup() error {
+	if p.globalStore == nil {
+		return nil
+	}
+
+	newStore := newStoreFactory(p.config.driver)
+	if newStore == nil {
+		return ErrInvalidStoreDriver
+	}
+
+	profiles := append([]string(nil), p.globalStore.ListProfiles()...)
+
+	// Delete each individual profile store
+	for _, profileName := range profiles {
+		store, err := newStore(p.config.configName, getStoreKey(profileName))
+		if err != nil {
+			return err
+		}
+		if err := p.globalStore.RemoveProfileWithoutDefaultCheck(profileName); err != nil {
+			return err
+		}
+		if store.Exists() {
+			if err := store.Delete(); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Delete the global store itself
+	if err := p.globalStore.DeleteStore(); err != nil {
+		return err
+	}
+
+	// Reset in-memory references and reload a fresh, empty global store
+	p.currentProfileStore = nil
+	p.globalStore = nil
+
+	return nil
 }

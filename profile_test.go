@@ -64,6 +64,21 @@ func (s *ProfilesSuite) TearDownSuite() {
 	os.RemoveAll(s.testTempDir)
 }
 
+func (s *ProfilesSuite) assertDirFileCount(dir string, expected int) {
+	files, err := os.ReadDir(dir)
+	s.Require().NoError(err)
+	s.Require().Len(files, expected)
+}
+
+func (s *ProfilesSuite) assertKeyringProfilesDeleted(names ...string) {
+	for _, name := range names {
+		key := getStoreKey(name)
+		_, err := keyring.Get(testConsumerServiceProfiler, key)
+		s.Require().Error(err)
+		s.Require().ErrorIs(err, keyring.ErrNotFound)
+	}
+}
+
 func (s *ProfilesSuite) TestLifecycleProfile_FileStore() {
 	profile := &mockProfile{
 		Name:      "test-profile-fs",
@@ -96,9 +111,7 @@ func (s *ProfilesSuite) TestLifecycleProfile_FileStore() {
 	s.Require().Equal(profile.Nested.SubValue, p.Profile.(*mockProfile).Nested.SubValue)
 
 	// check the file system
-	files, err := os.ReadDir(s.testTempDir)
-	s.Require().NoError(err)
-	s.Require().Len(files, 4)
+	s.assertDirFileCount(s.testTempDir, 4)
 
 	// test conflict if creating same profile name twice
 	err = fileSystemProfiler.AddProfile(profile, true)
@@ -134,9 +147,7 @@ func (s *ProfilesSuite) TestLifecycleProfile_FileStore() {
 	s.Require().Equal(list[1], profile2.Name)
 
 	// check the file system
-	files, err = os.ReadDir(s.testTempDir)
-	s.Require().NoError(err)
-	s.Require().Len(files, 6)
+	s.assertDirFileCount(s.testTempDir, 6)
 
 	// set the second profile as default
 	s.Require().NoError(SetDefaultProfile(fileSystemProfiler, profile2.Name))
@@ -147,6 +158,15 @@ func (s *ProfilesSuite) TestLifecycleProfile_FileStore() {
 	list = ListProfiles(fileSystemProfiler)
 	s.Require().Len(list, 1)
 	s.Require().Equal(list[0], profile2.Name)
+
+	s.assertDirFileCount(s.testTempDir, 4)
+
+	// delete all remaining profiles
+	s.Require().NoError(fileSystemProfiler.Cleanup())
+	s.Require().Nil(fileSystemProfiler.globalStore)
+	s.Require().Nil(fileSystemProfiler.currentProfileStore)
+
+	s.assertDirFileCount(s.testTempDir, 0)
 }
 
 func (s *ProfilesSuite) TestLifecycleProfile_Keyring() {
@@ -222,6 +242,12 @@ func (s *ProfilesSuite) TestLifecycleProfile_Keyring() {
 	list = ListProfiles(keyringProfiler)
 	s.Require().Len(list, 1)
 	s.Require().Equal(list[0], profile2.Name)
+
+	// delete all remaining profiles
+	s.Require().NoError(keyringProfiler.Cleanup())
+	s.Require().Nil(keyringProfiler.globalStore)
+	s.Require().Nil(keyringProfiler.currentProfileStore)
+	s.assertKeyringProfilesDeleted(profile.Name, profile2.Name)
 }
 
 func TestAttributesSuite(t *testing.T) {

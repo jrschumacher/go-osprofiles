@@ -108,12 +108,28 @@ func (p *GlobalStore) RemoveProfile(profileName string) error {
 	if profileName == p.config.DefaultProfile {
 		return ErrDeletingDefaultProfile
 	}
+	return p.remove(profileName)
+}
+
+// RemoveProfileWithoutDefaultCheck removes a profile from the global configuration without
+// enforcing the default profile protection. This is intended for bulk delete operations
+// where all profiles are being removed (e.g. DeleteAllProfiles).
+func (p *GlobalStore) RemoveProfileWithoutDefaultCheck(profileName string) error {
+	if profileName == p.config.DefaultProfile {
+		p.config.DefaultProfile = ""
+	}
+
+	return p.remove(profileName)
+}
+
+func (p *GlobalStore) remove(profileName string) error {
 	for i, profile := range p.config.Profiles {
 		if profile == profileName {
 			p.config.Profiles = append(p.config.Profiles[:i], p.config.Profiles[i+1:]...)
 			return p.store.Set(p.config)
 		}
 	}
+
 	return nil
 }
 
@@ -124,4 +140,9 @@ func (p *GlobalStore) SetDefaultProfile(profileName string) error {
 
 func (p *GlobalStore) GetDefaultProfile() string {
 	return p.config.DefaultProfile
+}
+
+// DeleteStore removes the persisted global configuration from the underlying store.
+func (p *GlobalStore) DeleteStore() error {
+	return p.store.Delete()
 }
