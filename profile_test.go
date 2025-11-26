@@ -162,7 +162,7 @@ func (s *ProfilesSuite) TestLifecycleProfile_FileStore() {
 	s.assertDirFileCount(s.testTempDir, 4)
 
 	// delete all remaining profiles
-	s.Require().NoError(fileSystemProfiler.Cleanup())
+	s.Require().NoError(fileSystemProfiler.Cleanup(true))
 	s.Require().Nil(fileSystemProfiler.globalStore)
 	s.Require().Nil(fileSystemProfiler.currentProfileStore)
 
@@ -244,7 +244,7 @@ func (s *ProfilesSuite) TestLifecycleProfile_Keyring() {
 	s.Require().Equal(list[0], profile2.Name)
 
 	// delete all remaining profiles
-	s.Require().NoError(keyringProfiler.Cleanup())
+	s.Require().NoError(keyringProfiler.Cleanup(true))
 	s.Require().Nil(keyringProfiler.globalStore)
 	s.Require().Nil(keyringProfiler.currentProfileStore)
 	s.assertKeyringProfilesDeleted(profile.Name, profile2.Name)

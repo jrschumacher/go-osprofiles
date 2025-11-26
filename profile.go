@@ -3,6 +3,7 @@ package profiles
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/jrschumacher/go-osprofiles/internal/global"
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
@@ -233,15 +234,17 @@ func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 	return profile.Delete()
 }
 
-// Cleanup deletes the global store, then attempts to cleanup any additional
-// profiles that are left in the profiler's store.
-func (p *Profiler) Cleanup() error {
-	if err := p.globalStore.DeleteStore(); err != nil {
-		return err
+// Cleanup attempts to delete all profiles and resources from the profiler's underlying store.
+func (p *Profiler) Cleanup(forceDelete bool) error {
+	if err := p.deleteProfiles(true); err != nil { //nolint:empty-block // No logging framework setup
+		if !forceDelete {
+			return err
+		}
+		slog.Warn("Error when deleting profiles, force delete is true...continuing", slog.Any("error", err))
 	}
 
-	if err := p.deleteProfiles(false); err != nil { //nolint:empty-block // No logging framework setup
-		// Do not have logging so swallow
+	if err := p.globalStore.DeleteStore(); err != nil {
+		return err
 	}
 
 	// Reset in-memory references and reload a fresh, empty global store
@@ -251,7 +254,7 @@ func (p *Profiler) Cleanup() error {
 	return nil
 }
 
-func (p *Profiler) deleteProfiles(deleteFromGlobalStore bool) error {
+func (p *Profiler) deleteProfiles() error {
 	if p.globalStore == nil {
 		return nil
 	}
@@ -264,10 +267,8 @@ func (p *Profiler) deleteProfiles(deleteFromGlobalStore bool) error {
 	profiles := append([]string(nil), p.globalStore.ListProfiles()...)
 
 	for _, profileName := range profiles {
-		if deleteFromGlobalStore {
-			if err := p.globalStore.RemoveProfileWithoutDefaultCheck(profileName); err != nil {
-				return err
-			}
+		if err := p.globalStore.RemoveProfileWithoutDefaultCheck(profileName); err != nil {
+			return err
 		}
 
 		store, err := newStore(p.config.configName, getStoreKey(profileName))
