@@ -92,16 +92,7 @@ func HasGlobalStore(configName string, newStore store.NewStoreInterface, driverO
 		return false, err
 	}
 
-	p := &GlobalStore{
-		store: store,
-
-		config: GlobalConfig{
-			Profiles:       make([]string, 0),
-			DefaultProfile: "",
-		},
-	}
-
-	return p.store.Exists(), nil
+	return store.Exists(), nil
 }
 
 func (p *GlobalStore) ProfileExists(profileName string) bool {
