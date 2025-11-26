@@ -236,7 +236,7 @@ func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 
 // Cleanup attempts to delete all profiles and resources from the profiler's underlying store.
 func (p *Profiler) Cleanup(forceDelete bool) error {
-	if err := p.deleteProfiles(true); err != nil { //nolint:empty-block // No logging framework setup
+	if err := p.deleteProfiles(); err != nil { //nolint:empty-block // No logging framework setup
 		if !forceDelete {
 			return err
 		}
