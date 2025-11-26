@@ -1,6 +1,7 @@
 package profiles
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jrschumacher/go-osprofiles/internal/global"
@@ -232,8 +233,25 @@ func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 	return profile.Delete()
 }
 
-// Cleanup deletes all profiles for the Profiler and removes the global store from the underlying store.
+// Cleanup deletes the global store, then attempts to cleanup any additional
+// profiles that are left in the profiler's store.
 func (p *Profiler) Cleanup() error {
+	if err := p.globalStore.DeleteStore(); err != nil {
+		return err
+	}
+
+	if err := p.deleteProfiles(false); err != nil { //nolint:empty-block // No logging framework setup
+		// Do not have logging so swallow
+	}
+
+	// Reset in-memory references and reload a fresh, empty global store
+	p.currentProfileStore = nil
+	p.globalStore = nil
+
+	return nil
+}
+
+func (p *Profiler) deleteProfiles(deleteFromGlobalStore bool) error {
 	if p.globalStore == nil {
 		return nil
 	}
@@ -245,30 +263,23 @@ func (p *Profiler) Cleanup() error {
 
 	profiles := append([]string(nil), p.globalStore.ListProfiles()...)
 
-	// Delete each individual profile store
 	for _, profileName := range profiles {
+		if deleteFromGlobalStore {
+			if err := p.globalStore.RemoveProfileWithoutDefaultCheck(profileName); err != nil {
+				return err
+			}
+		}
+
 		store, err := newStore(p.config.configName, getStoreKey(profileName))
 		if err != nil {
 			return err
 		}
-		if err := p.globalStore.RemoveProfileWithoutDefaultCheck(profileName); err != nil {
-			return err
-		}
 		if store.Exists() {
 			if err := store.Delete(); err != nil {
-				return err
+				return errors.Join(fmt.Errorf("%w %q", ErrDeletingProfile, profileName), err)
 			}
 		}
 	}
-
-	// Delete the global store itself
-	if err := p.globalStore.DeleteStore(); err != nil {
-		return err
-	}
-
-	// Reset in-memory references and reload a fresh, empty global store
-	p.currentProfileStore = nil
-	p.globalStore = nil
 
 	return nil
 }
