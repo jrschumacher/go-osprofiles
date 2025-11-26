@@ -1,6 +1,7 @@
 package profiles
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jrschumacher/go-osprofiles/internal/global"
@@ -74,12 +75,7 @@ func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 	}
 }
 
-// New creates a new Profile with the specified configuration options.
-// The configName is required and must be unique to the application.
-func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error) {
-	var err error
-
-	// Apply configuration options
+func buildProfileConfig(configName string, opts ...profileConfigVariadicFunc) (profileConfig, store.NewStoreInterface, error) {
 	config := profileConfig{
 		driver:     global.PROFILE_DRIVER_DEFAULT,
 		configName: configName,
@@ -88,10 +84,22 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error
 		config = opt(config)
 	}
 
-	// Validate and initialize the store
 	newStore := newStoreFactory(config.driver)
 	if newStore == nil {
-		return nil, ErrInvalidStoreDriver
+		return profileConfig{}, nil, ErrInvalidStoreDriver
+	}
+
+	return config, newStore, nil
+}
+
+// New creates a new Profile with the specified configuration options.
+// The configName is required and must be unique to the application.
+func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error) {
+	var err error
+
+	config, newStore, err := buildProfileConfig(configName, opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	p := &Profiler{
@@ -105,6 +113,16 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error
 	}
 
 	return p, nil
+}
+
+// HasGlobalStore checks if any profiles have been created for a specific store before.
+func HasGlobalStore(configName string, opts ...profileConfigVariadicFunc) (bool, error) {
+	config, newStore, err := buildProfileConfig(configName, opts...)
+	if err != nil {
+		return false, err
+	}
+
+	return global.HasGlobalStore(configName, newStore, config.driverOpts...)
 }
 
 // GetGlobalConfig returns the global configuration
@@ -218,7 +236,6 @@ func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 	if !p.globalStore.ProfileExists(profileName) {
 		return ErrMissingProfileName
 	}
-
 	// Retrieve the profile
 	profile, err := LoadProfileStore[T](p.config.configName, newStoreFactory(p.config.driver), profileName)
 	if err != nil {
@@ -231,4 +248,54 @@ func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 	}
 
 	return profile.Delete()
+}
+
+// Cleanup attempts to delete all profiles and resources from the profiler's underlying store.
+func (p *Profiler) Cleanup(forceDelete bool) error {
+	if err := p.deleteProfiles(); err != nil { //nolint:empty-block // No logging framework setup
+		if !forceDelete {
+			return err
+		}
+	}
+
+	if err := p.globalStore.DeleteStore(); err != nil {
+		return err
+	}
+
+	// Reset in-memory references and reload a fresh, empty global store
+	p.currentProfileStore = nil
+	p.globalStore = nil
+
+	return nil
+}
+
+func (p *Profiler) deleteProfiles() error {
+	if p.globalStore == nil {
+		return nil
+	}
+
+	newStore := newStoreFactory(p.config.driver)
+	if newStore == nil {
+		return ErrInvalidStoreDriver
+	}
+
+	profiles := append([]string(nil), p.globalStore.ListProfiles()...)
+
+	for _, profileName := range profiles {
+		if err := p.globalStore.RemoveProfileForce(profileName); err != nil {
+			return err
+		}
+
+		store, err := newStore(p.config.configName, getStoreKey(profileName))
+		if err != nil {
+			return err
+		}
+		if store.Exists() {
+			if err := store.Delete(); err != nil {
+				return errors.Join(fmt.Errorf("%w %q", ErrDeletingProfile, profileName), err)
+			}
+		}
+	}
+
+	return nil
 }
