@@ -86,6 +86,24 @@ func LoadGlobalConfig(configName string, newStore store.NewStoreInterface, drive
 	return p, err
 }
 
+func HasGlobalStore(configName string, newStore store.NewStoreInterface, driverOpts ...store.DriverOpt) (bool, error) {
+	store, err := newStore(configName, STORE_KEY_GLOBAL, driverOpts...)
+	if err != nil {
+		return false, err
+	}
+
+	p := &GlobalStore{
+		store: store,
+
+		config: GlobalConfig{
+			Profiles:       make([]string, 0),
+			DefaultProfile: "",
+		},
+	}
+
+	return p.store.Exists(), nil
+}
+
 func (p *GlobalStore) ProfileExists(profileName string) bool {
 	for _, profile := range p.config.Profiles {
 		if profile == profileName {
@@ -111,10 +129,10 @@ func (p *GlobalStore) RemoveProfile(profileName string) error {
 	return p.remove(profileName)
 }
 
-// RemoveProfileWithoutDefaultCheck removes a profile from the global configuration without
+// RemoveProfileForce removes a profile from the global configuration without
 // enforcing the default profile protection. This is intended for bulk delete operations
 // where all profiles are being removed (e.g. DeleteAllProfiles).
-func (p *GlobalStore) RemoveProfileWithoutDefaultCheck(profileName string) error {
+func (p *GlobalStore) RemoveProfileForce(profileName string) error {
 	if profileName == p.config.DefaultProfile {
 		p.config.DefaultProfile = ""
 	}

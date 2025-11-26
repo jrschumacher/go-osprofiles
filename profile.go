@@ -3,7 +3,6 @@ package profiles
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 
 	"github.com/jrschumacher/go-osprofiles/internal/global"
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
@@ -76,12 +75,7 @@ func newStoreFactory(driver global.ProfileDriver) store.NewStoreInterface {
 	}
 }
 
-// New creates a new Profile with the specified configuration options.
-// The configName is required and must be unique to the application.
-func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error) {
-	var err error
-
-	// Apply configuration options
+func buildProfileConfig(configName string, opts ...profileConfigVariadicFunc) (profileConfig, store.NewStoreInterface, error) {
 	config := profileConfig{
 		driver:     global.PROFILE_DRIVER_DEFAULT,
 		configName: configName,
@@ -90,10 +84,22 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error
 		config = opt(config)
 	}
 
-	// Validate and initialize the store
 	newStore := newStoreFactory(config.driver)
 	if newStore == nil {
-		return nil, ErrInvalidStoreDriver
+		return profileConfig{}, nil, ErrInvalidStoreDriver
+	}
+
+	return config, newStore, nil
+}
+
+// New creates a new Profile with the specified configuration options.
+// The configName is required and must be unique to the application.
+func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error) {
+	var err error
+
+	config, newStore, err := buildProfileConfig(configName, opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	p := &Profiler{
@@ -107,6 +113,16 @@ func New(configName string, opts ...profileConfigVariadicFunc) (*Profiler, error
 	}
 
 	return p, nil
+}
+
+// HasGlobalStore checks if any profiles have been created for a specific store before.
+func HasGlobalStore(configName string, opts ...profileConfigVariadicFunc) (bool, error) {
+	config, newStore, err := buildProfileConfig(configName, opts...)
+	if err != nil {
+		return false, err
+	}
+
+	return global.HasGlobalStore(configName, newStore, config.driverOpts...)
 }
 
 // GetGlobalConfig returns the global configuration
@@ -240,7 +256,6 @@ func (p *Profiler) Cleanup(forceDelete bool) error {
 		if !forceDelete {
 			return err
 		}
-		slog.Warn("Error when deleting profiles, force delete is true...continuing", slog.Any("error", err))
 	}
 
 	if err := p.globalStore.DeleteStore(); err != nil {
@@ -267,7 +282,7 @@ func (p *Profiler) deleteProfiles() error {
 	profiles := append([]string(nil), p.globalStore.ListProfiles()...)
 
 	for _, profileName := range profiles {
-		if err := p.globalStore.RemoveProfileWithoutDefaultCheck(profileName); err != nil {
+		if err := p.globalStore.RemoveProfileForce(profileName); err != nil {
 			return err
 		}
 

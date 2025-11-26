@@ -79,6 +79,40 @@ func (s *ProfilesSuite) assertKeyringProfilesDeleted(names ...string) {
 	}
 }
 
+func (s *ProfilesSuite) TestHasGlobalStore_FileStore() {
+	configName := "test-has-global-store-fs"
+
+	exists, err := HasGlobalStore(configName, WithFileStore(s.testTempDir))
+	s.Require().NoError(err)
+	s.Require().False(exists)
+
+	profiler, err := New(configName, WithFileStore(s.testTempDir))
+	s.Require().NoError(err)
+	s.Require().NotNil(profiler)
+
+	exists, err = HasGlobalStore(configName, WithFileStore(s.testTempDir))
+	s.Require().NoError(err)
+	s.Require().True(exists)
+	s.Require().NoError(profiler.Cleanup(true))
+}
+
+func (s *ProfilesSuite) TestHasGlobalStore_Keyring() {
+	configName := "test-has-global-store-keyring"
+
+	exists, err := HasGlobalStore(configName, WithKeyringStore())
+	s.Require().NoError(err)
+	s.Require().False(exists)
+
+	profiler, err := New(configName, WithKeyringStore())
+	s.Require().NoError(err)
+	s.Require().NotNil(profiler)
+
+	exists, err = HasGlobalStore(configName, WithKeyringStore())
+	s.Require().NoError(err)
+	s.Require().True(exists)
+	s.Require().NoError(profiler.Cleanup(true))
+}
+
 func (s *ProfilesSuite) TestLifecycleProfile_FileStore() {
 	profile := &mockProfile{
 		Name:      "test-profile-fs",
