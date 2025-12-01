@@ -3,7 +3,7 @@ package global
 import (
 	"encoding/json"
 
-	globalerrors "github.com/jrschumacher/go-osprofiles/pkg/globalErrors"
+	"github.com/jrschumacher/go-osprofiles/pkg/globalerrors"
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
 

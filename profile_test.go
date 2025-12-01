@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	globalerrors "github.com/jrschumacher/go-osprofiles/pkg/globalErrors"
+	"github.com/jrschumacher/go-osprofiles/pkg/globalerrors"
 	"github.com/stretchr/testify/suite"
 	"github.com/zalando/go-keyring"
 )
