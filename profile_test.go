@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/jrschumacher/go-osprofiles/internal/global"
+	globalerrors "github.com/jrschumacher/go-osprofiles/pkg/globalErrors"
 	"github.com/stretchr/testify/suite"
 	"github.com/zalando/go-keyring"
 )
@@ -166,7 +166,7 @@ func (s *ProfilesSuite) TestLifecycleProfile_FileStore() {
 
 	// delete fails due to being default
 	err = DeleteProfile[*mockProfile](fileSystemProfiler, profile.Name)
-	s.Require().ErrorIs(err, global.ErrDeletingDefaultProfile)
+	s.Require().ErrorIs(err, globalerrors.ErrDeletingDefaultProfile)
 
 	// add a second profile
 	profile2 := &mockProfile{
@@ -253,7 +253,7 @@ func (s *ProfilesSuite) TestLifecycleProfile_Keyring() {
 
 	// delete fails due to being default
 	err = DeleteProfile[*mockProfile](keyringProfiler, profile.Name)
-	s.Require().ErrorIs(err, global.ErrDeletingDefaultProfile)
+	s.Require().ErrorIs(err, globalerrors.ErrDeletingDefaultProfile)
 
 	// add a second profile
 	profile2 := &mockProfile{
