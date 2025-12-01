@@ -244,7 +244,12 @@ func DeleteProfile[T NamedProfile](p *Profiler, profileName string) error {
 
 	// Remove profile from global configuration
 	if err := p.globalStore.RemoveProfile(profileName); err != nil {
+		if errors.Is(err, global.ErrDeletingDefaultProfile) {
+			return ErrCannotDeleteDefaultProfile
+		}
+
 		return err
+
 	}
 
 	return profile.Delete()

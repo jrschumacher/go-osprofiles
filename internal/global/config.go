@@ -3,7 +3,6 @@ package global
 import (
 	"encoding/json"
 
-	"github.com/jrschumacher/go-osprofiles/pkg/globalerrors"
 	"github.com/jrschumacher/go-osprofiles/pkg/store"
 )
 
@@ -116,7 +115,7 @@ func (p *GlobalStore) ListProfiles() []string {
 
 func (p *GlobalStore) RemoveProfile(profileName string) error {
 	if profileName == p.config.DefaultProfile {
-		return globalerrors.ErrDeletingDefaultProfile
+		return ErrDeletingDefaultProfile
 	}
 	return p.remove(profileName)
 }
