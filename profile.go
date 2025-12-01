@@ -274,6 +274,11 @@ func (p *Profiler) Cleanup(forceDelete bool) error {
 	return nil
 }
 
+// Deletes all profiles for a given profiler.
+func (p *Profiler) DeleteAllProfiles() error {
+	return p.deleteProfiles()
+}
+
 func (p *Profiler) deleteProfiles() error {
 	if p.globalStore == nil {
 		return nil
