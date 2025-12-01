@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/jrschumacher/go-osprofiles/internal/global"
 	"github.com/stretchr/testify/suite"
 	"github.com/zalando/go-keyring"
 )
@@ -69,12 +70,20 @@ func (s *ProfilesSuite) assertDirFileCount(dir string, expected int) {
 	s.Require().Len(files, expected)
 }
 
-func (s *ProfilesSuite) assertKeyringProfilesDeleted(names ...string) {
+func (s *ProfilesSuite) assertKeyringProfiles(shouldBeDeleted bool, names ...string) {
 	for _, name := range names {
-		key := getStoreKey(name)
+		key := name
+		if name != global.STORE_KEY_GLOBAL {
+			key = getStoreKey(name)
+		}
 		_, err := keyring.Get(testConsumerServiceProfiler, key)
-		s.Require().Error(err)
-		s.Require().ErrorIs(err, keyring.ErrNotFound)
+		if shouldBeDeleted {
+			s.Require().Error(err)
+			s.Require().ErrorIs(err, keyring.ErrNotFound)
+		} else {
+			s.Require().Nil(err)
+			s.Require().NoError(err)
+		}
 	}
 }
 
@@ -194,6 +203,11 @@ func (s *ProfilesSuite) TestLifecycleProfile_FileStore() {
 
 	s.assertDirFileCount(s.testTempDir, 4)
 
+	s.Require().NoError(fileSystemProfiler.DeleteAllProfiles())
+	list = ListProfiles(fileSystemProfiler)
+	s.Require().Len(list, 0)
+	s.assertDirFileCount(s.testTempDir, 2)
+
 	// delete all remaining profiles
 	s.Require().NoError(fileSystemProfiler.Cleanup(true))
 	s.Require().Nil(fileSystemProfiler.globalStore)
@@ -276,11 +290,16 @@ func (s *ProfilesSuite) TestLifecycleProfile_Keyring() {
 	s.Require().Len(list, 1)
 	s.Require().Equal(list[0], profile2.Name)
 
+	s.Require().NoError(keyringProfiler.DeleteAllProfiles())
+	list = ListProfiles(keyringProfiler)
+	s.Require().Len(list, 0)
+	s.assertKeyringProfiles(false, global.STORE_KEY_GLOBAL)
+
 	// delete all remaining profiles
 	s.Require().NoError(keyringProfiler.Cleanup(true))
 	s.Require().Nil(keyringProfiler.globalStore)
 	s.Require().Nil(keyringProfiler.currentProfileStore)
-	s.assertKeyringProfilesDeleted(profile.Name, profile2.Name)
+	s.assertKeyringProfiles(true, global.STORE_KEY_GLOBAL, profile.Name, profile2.Name)
 }
 
 func TestAttributesSuite(t *testing.T) {
